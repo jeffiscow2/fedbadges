@@ -2788,23 +2788,25 @@ develop = false
 [package.dependencies]
 alembic = "*"
 arrow = "*"
+fedora-messaging = "*"
 pastedeploy = "*"
 pygments = "*"
 simplejson = "*"
 SQLAlchemy = ">=0.7.2"
+tahrir-messages = "*"
 "zope.sqlalchemy" = "*"
 
 [package.source]
 type = "git"
 url = "https://github.com/fedora-infra/tahrir-api.git"
 reference = "develop"
-resolved_reference = "bc18ba9398ac517721feb077f552625167024db3"
+resolved_reference = "60f9a4c95bfec7aee6bed4907d32a293b491a71b"
 
 [[package]]
 name = "tahrir-messages"
 version = "1.0.2"
 description = "A schema package for messages sent by tahrir"
-optional = true
+optional = false
 python-versions = "<4.0,>=3.8"
 files = [
     {file = "tahrir_messages-1.0.2-py3-none-any.whl", hash = "sha256:7d5a213cccafbf1ef2f3f21f814fc6e6bf45ffb760a6e3abed638ac033453c6d"},
