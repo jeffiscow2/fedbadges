@@ -256,6 +256,20 @@ six = "*"
 swagger-spec-validator = ">=2.0.1"
 
 [[package]]
+name = "bugzilla2fedmsg-schema"
+version = "1.0.0"
+description = "Fedora Messaging schemas for bugzilla2fedmsg"
+optional = true
+python-versions = ">=3.8.10,<4.0.0"
+files = [
+    {file = "bugzilla2fedmsg_schema-1.0.0-py3-none-any.whl", hash = "sha256:3362d2c53cf047816533f7b3af276eb4331576cd34a92e4f9a0dc9feae54e58f"},
+    {file = "bugzilla2fedmsg_schema-1.0.0.tar.gz", hash = "sha256:675b007dfac72cb6628e50246d468b0a66c2a4cab15aff9b64279f7653439128"},
+]
+
+[package.dependencies]
+fedora-messaging = ">=3.2.0,<4.0.0"
+
+[[package]]
 name = "certifi"
 version = "2024.2.2"
 description = "Python package for providing Mozilla's CA Bundle."
@@ -911,6 +925,20 @@ testing = ["covdefaults (>=2.3)", "coverage (>=7.3.2)", "diff-cover (>=8)", "pyt
 typing = ["typing-extensions (>=4.8)"]
 
 [[package]]
+name = "fmn-messages"
+version = "1.0.0"
+description = "A schema package for messages sent by FMN"
+optional = true
+python-versions = "<4.0.0,>=3.8.10"
+files = [
+    {file = "fmn_messages-1.0.0-py3-none-any.whl", hash = "sha256:9447b0fb7748e6d0ab271ecfcfb815c6cd19e7d02b571b8b379b82331a4e677c"},
+    {file = "fmn_messages-1.0.0.tar.gz", hash = "sha256:5839430822fe3f12e7650641cc816861188fa686dbf268e09196c657c7b84309"},
+]
+
+[package.dependencies]
+fedora-messaging = ">=3.3.0,<4.0.0"
+
+[[package]]
 name = "fqdn"
 version = "1.5.1"
 description = "Validates fully-qualified domain names against RFC 1123, so that they are acceptable to modern bowsers"
@@ -1201,6 +1229,20 @@ files = [
 referencing = ">=0.31.0"
 
 [[package]]
+name = "kerneltest-messages"
+version = "1.0.0"
+description = "A schema package for messages sent by kerneltest"
+optional = true
+python-versions = ">=3.8,<4.0"
+files = [
+    {file = "kerneltest_messages-1.0.0-py3-none-any.whl", hash = "sha256:381da2907fbc34cac7cc1e9775aaad06a6ff504e0eecf231c3b4992e6dc3c29b"},
+    {file = "kerneltest_messages-1.0.0.tar.gz", hash = "sha256:66f71328a4c16570b0106d4eb1ebc757fa7e57c416093c8a644339476ed3c683"},
+]
+
+[package.dependencies]
+fedora-messaging = ">=3.3.0,<4.0.0"
+
+[[package]]
 name = "koji-fedoramessaging-messages"
 version = "1.2.3"
 description = "A schema package for messages sent by the koji-fedoramessaging plugin"
@@ -1409,6 +1451,21 @@ python-versions = ">=3.8,<4.0"
 files = [
     {file = "mediawiki_messages-1.0.1-py3-none-any.whl", hash = "sha256:de423baddd435def9cf2b7b693be598e1699b97bb01e6f1f72e8941fadf9f3af"},
     {file = "mediawiki_messages-1.0.1.tar.gz", hash = "sha256:3b31a2ac632e58aa232e9a31adcb4b859b565d63ce99737e85f28302e1821bf4"},
+]
+
+[package.dependencies]
+coverage = {version = ">=7.0.0", extras = ["toml"]}
+fedora-messaging = ">=3.3.0,<4.0.0"
+
+[[package]]
+name = "meetbot-messages"
+version = "1.0.1"
+description = "A schema package for messages sent by meetbot"
+optional = true
+python-versions = ">=3.8,<4.0"
+files = [
+    {file = "meetbot-messages-1.0.1.tar.gz", hash = "sha256:8f3f0f0a46ffc0408bb0805f0e608596eae848330fbb878c9ad9de21b77140c8"},
+    {file = "meetbot_messages-1.0.1-py3-none-any.whl", hash = "sha256:e5e16a3217a57750d9584199a16f7562c68594489bf6e37a69390d115bf302df"},
 ]
 
 [package.dependencies]
@@ -2744,6 +2801,20 @@ reference = "develop"
 resolved_reference = "bc18ba9398ac517721feb077f552625167024db3"
 
 [[package]]
+name = "tahrir-messages"
+version = "1.0.2"
+description = "A schema package for messages sent by tahrir"
+optional = true
+python-versions = "<4.0,>=3.8"
+files = [
+    {file = "tahrir_messages-1.0.2-py3-none-any.whl", hash = "sha256:7d5a213cccafbf1ef2f3f21f814fc6e6bf45ffb760a6e3abed638ac033453c6d"},
+    {file = "tahrir_messages-1.0.2.tar.gz", hash = "sha256:a51fab28856baef98376633c0f8e1b60783f4f5e50e41d04435f7b3ed41748ee"},
+]
+
+[package.dependencies]
+fedora-messaging = ">=3.3.0,<4.0.0"
+
+[[package]]
 name = "toml"
 version = "0.10.2"
 description = "Python Library for Tom's Obvious, Minimal Language"
@@ -3089,9 +3160,9 @@ transaction = ">=1.6.0"
 test = ["zope.testing"]
 
 [extras]
-schemas = ["anitya-schema", "bodhi-messages", "ci-messages", "copr-messaging", "discourse2fedmsg-messages", "fedocal-messages", "fedora-elections-messages", "fedora-messaging-git-hook-messages", "fedora-messaging-the-new-hotness-schema", "fedora-planet-messages", "fedorainfra-ansible-messages", "koji-fedoramessaging-messages", "koschei-messages", "mdapi-messages", "mediawiki-messages", "noggin-messages", "nuancier-messages", "pagure-messages"]
+schemas = ["anitya-schema", "bodhi-messages", "bugzilla2fedmsg-schema", "ci-messages", "copr-messaging", "discourse2fedmsg-messages", "fedocal-messages", "fedora-elections-messages", "fedora-messaging-git-hook-messages", "fedora-messaging-the-new-hotness-schema", "fedora-planet-messages", "fedorainfra-ansible-messages", "fmn-messages", "kerneltest-messages", "koji-fedoramessaging-messages", "koschei-messages", "mdapi-messages", "mediawiki-messages", "meetbot-messages", "noggin-messages", "nuancier-messages", "pagure-messages", "tahrir-messages"]
 
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "b06003dc003e2d262a85e7c84e6b455e46b16c1248ea46fd7028d80e6c2016e4"
+content-hash = "6e774d078035b057d05bf30257192120704067c19c0a8f8816e970e6f982e394"
