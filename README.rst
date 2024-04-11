@@ -1,13 +1,13 @@
-Fedora Badges
-=============
+Fedora Badges Message consumer
+==============================
 
 This repo contains the consumer and the command necessary to hook the
-badges stack (Tahrir, Tahrir-API, Tahrir-REST) into fedmsg.  It is the process
-that runs in the background, monitoring activity of Fedora contributors, and is
-responsible for awarding badges for activity as it happens.  It is separate
-from and sometimes confused with the *frontend* of the badges system; that web
-application is called `tahrir <https://github.com/fedora-infra/tahrir>`_.  This
-project (fedbadges) writes to a database that the web frontend (tahrir) reads
+badges stack (Tahrir, Tahrir-API, Tahrir-REST) into Fedora Messaging.
+It is the process that runs in the background, monitoring activity of Fedora
+contributors, and is responsible for awarding badges for activity as it happens.
+It is separate from and sometimes confused with the *frontend* of the badges system
+called `tahrir <https://github.com/fedora-infra/tahrir>`_.
+This project (fedbadges) writes to a database that the web frontend (tahrir) reads
 from.
 
 The *actual badge rules* that we act on in Fedora Infrastructure can be
@@ -16,16 +16,16 @@ found `here <https://pagure.io/Fedora-Badges>`.
 Architecture
 ------------
 
-fedbadges runs as a ``Consumer`` plugin to the ``fedmsg-hub`` (really,
-a moksha-hub).  When started, it will load some initial configuration
+fedbadges is a callback class for the Fedora Messaging consumer.
+When started, it will load some initial configuration
 and a set of ``BadgeRules`` (more on that later) and then sit quietly
-listening to the fedmsg bus.  Each rule (composed of some metadata,
+listening to the Fedora Messaging bus.  Each rule (composed of some metadata,
 a ``trigger``, and a set of ``criteria``) is defined on disk as a yaml file.
 
-* When a new message comes along, our ``Consumer`` looks to see if it matches
+* When a new message comes along, our callback looks to see if it matches
   any of the ``BadgeRules`` it has registered.
 
-* Each BadgeRule must define a ``trigger`` -- a `lightweight` check.
+* Each BadgeRule must define a ``trigger`` -- a *lightweight* check.
   When processing a message, this is the first thing that is checked.  It
   defines a *pattern* that the message must match.  If the message does not
   match, then the current BadgeRule is discarded and processing moves to
@@ -35,8 +35,8 @@ a ``trigger``, and a set of ``criteria``) is defined on disk as a yaml file.
   or "messages only from the failure of a koji build".  More on their
   specification below.
 
-* BadgeRules must also define a set of ``criteria`` -- a more `heavyweight`
-  checks.  During the processing of a newly received message, if the
+* BadgeRules must also define a set of ``criteria`` -- a more *heavyweight*
+  check.  During the processing of a newly received message, if the
   message matches a BadgeRule's ``trigger``, the ``criteria`` is then
   considered.  This typically involves a more expensive query to the
   `datanommer <https://github.com/fedora-infra/datanommer>`_ database.
@@ -45,14 +45,14 @@ a ``trigger``, and a set of ``criteria``) is defined on disk as a yaml file.
   pushed 200 bodhi updates to stable" or "$user chaired an IRC meeting".
 
   **Aside:** Although datanommer is the only currently supported backend, we
-  can implement other queryable backend in the future as needed like FAS2
+  can implement other queryable backend in the future as needed like FAS
   (to see if the user is in X number of groups) or even off-site services
   like libravatar (to award a badge if the user is a user of the AGPL web
   service).
 
 * If a badge's ``trigger`` and ``criteria`` both match, then the badge is
   awarded.  If the BadgeRule doesn't specify, we award the badge to all
-  usernames returned by a call to ``fedmsg.meta.msg2usernames(msg)``.
+  usernames returned by the message's ``usernames`` property.
 
   That is usually correct -- but sometimes, a BadgeRule needs to specify
   that one particular user (not all related users) should be recipients of
@@ -75,23 +75,15 @@ Configuration - Global
 ----------------------
 
 fedbadges needs three major pieces of global configuration.
-All configuration is loaded in the standard fedmsg way, from
-python files in ``/etc/fedmsg.d/``.
-
-First, generic and tahrir-related configuration.  See
-`fedmsg.d/badges-global.py
-<https://github.com/fedora-infra/fedbadges/blob/develop/fedmsg.d/badges-global.py>`_
+All configuration is loaded in the standard Fedora Messaging way, from
+the ``[consumer_config]`` section of the configuration file. See
+`fedbadges.toml.example
+<https://github.com/fedora-infra/fedbadges/blob/develop/fedbadges.toml.example>`_
 in the git repo for an example.
 
-Second, datanommer connection information.  See
-`fedmsg.d/datanommer.py
-<https://github.com/fedora-infra/fedbadges/blob/develop/fedmsg.d/datanommer.py>`_
-in the git repo for an example.
-
-Third, fedbadges emits its own fedmsg messages when it awards badges.  It will
-need its own endpoint definitions for this.  See `fedmsg.d/endpoints.py
-<https://github.com/fedora-infra/fedbadges/blob/develop/fedmsg.d/endpoints.py>`_
-in the git repo for an example.
+fedbadges also emits its own messages. Please note that the ``topic_prefix`` in
+the configuration should at least be ``badges``. In the Fedora Infrastructure,
+it will be ``org.fedoraproject.prod.badges``.
 
 Configuration - BadgeRule specification
 ---------------------------------------
@@ -251,31 +243,29 @@ Specifying Recipients
 ~~~~~~~~~~~~~~~~~~~~~
 
 By default, if the trigger and criteria match, fedbadges will award badges
-to all the users returned by a call to ``fedmsg.meta.msg2usernames(msg)``.
+to all the users returned by the message's ``usernames`` property.
 This *usually* corresponds with "what users are responsible" for this message.
 That is *usually* what we want to award badges for.
 
 There are some instances for which that is not what we want.
 
-Take the `org.fedoraproject.prod.fas.group.member.remove
-<http://www.fedmsg.com/en/latest/topics/#fas-group-member-remove>`_
-message for example.  When user A removes user B from a group, both
-usernames are returned from a call to ``fedmsg.meta.msg2usernames(msg)``
-with no further distinction as to which was removing and which was removed.
+Take the `org.fedoraproject.prod.fas.group.member.sponsor
+<https://fedora-messaging.readthedocs.io/en/stable/user-guide/schemas.html#fas>`_
+message for example.  When user A sponsors user B to a group, both
+usernames are returned by the message's ``usernames`` property with no
+further distinction as to which was adding and which was added.
 
-Imagine we have a "Group Pruner" badge that's awarded to group admins who
-remove inactive users from groups.  We don't want to inadvertently award
-that badge to the persons who *were removed*, only to those who *removed
-them*.
+Imagine we have a "Group Sponsor" badge that's awarded to group admins who
+sponsor users to groups.  We don't want to inadvertently award that badge
+to the persons who *were sponsored*, only to those who *sponsored them*.
 
 To allow for this scenario, badges may optionally define a ``recipient``
 in dotted notation that tells fedbadges where to find the username of the
 recipient in the originating message.  For instance, the following would
 handle the fas case we described above::
 
-
     trigger:
-      topic: org.fedoraproject.prod.fas.group.member.remove
+      topic: org.fedoraproject.prod.fas.group.member.sponsor
     criteria:
       filter:
         topics:
@@ -283,4 +273,4 @@ handle the fas case we described above::
       operation: count
       condition:
         greater than or equal to: 1
-    recipient: "%(msg.agent.username)s"
+    recipient: "%(msg.agent_name)s"
