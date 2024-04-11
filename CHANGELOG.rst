@@ -1,6 +1,15 @@
 Changelog
 =========
 
+2.0.0
+-----
+
+- Rebase on Fedora Messaging
+- Use Poetry
+- Make it work in Openshift
+- Lots of other changes, see the git log for details
+
+
 1.0.3
 -----
 
