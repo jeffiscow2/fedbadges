@@ -4,9 +4,7 @@ import logging
 import click
 import requests
 from fedora_messaging.config import conf as fm_config
-from sqlalchemy import not_, select
 from tahrir_api.dbapi import TahrirDatabase
-from tahrir_api.model import Person
 
 import fedbadges.utils
 
@@ -30,9 +28,7 @@ def main(debug):
     )
     badge = tahrir.get_badge("mugshot")
 
-    # This request should be replaced by a call to tahrir.get_all_persons() once we've enhanced it
-    # to filter out people who have opted out.
-    persons = tahrir.session.scalars(select(Person).where(not_(Person.opt_out))).all()
+    persons = tahrir.get_all_persons()
     already_has_it = [assertion.person for assertion in badge.assertions]
 
     good, bad = [], []
