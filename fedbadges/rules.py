@@ -346,7 +346,9 @@ class Trigger(AbstractTopLevelComparator):
             return operator_lookup[self.attribute](child.matches(msg) for child in self.children)
         elif self.attribute == "lambda":
             return single_argument_lambda_factory(
-                expression=self.expected_value, argument={"msg": msg.body}, name="msg"
+                expression=self.expected_value,
+                argument={"msg": msg.body, "message": msg},
+                name="msg",
             )
         elif self.attribute == "category":
             return msg.topic.split(".")[3] == self.expected_value
@@ -449,7 +451,7 @@ class DatanommerCriteria(AbstractSpecializedComparator):
         """
         subs = construct_substitutions(msg)
         kwargs = format_args(copy.copy(self._d["filter"]), subs)
-        kwargs = recursive_lambda_factory(kwargs, {"msg": msg.body}, name="msg")
+        kwargs = recursive_lambda_factory(kwargs, {"msg": msg.body, "message": msg}, name="msg")
 
         # It is possible to recieve a list of dictionary containing the name
         # of the recipient, this is the case in the pagure's fedmsg.

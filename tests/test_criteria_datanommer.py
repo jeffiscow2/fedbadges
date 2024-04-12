@@ -5,6 +5,8 @@ from fedora_messaging.message import Message
 
 import fedbadges.rules
 
+from .utils import example_real_bodhi_message
+
 
 class MockQuery:
     def __init__(self, returned_count):
@@ -194,8 +196,8 @@ def test_datanommer_with_lambda_filter():
             datanommer={
                 "filter": {
                     "users": {
-                        "lambda": "[u for u in set(['%(msg.commit.username)s', '%(msg.commit.agent)s'])"
-                        " if not u in ['bodhi', 'oscar']]",
+                        "lambda": "[u for u in msg['message'].usernames "
+                        "if not u in ['bodhi', 'hadess']]",
                     }
                 },
                 "operation": "count",
@@ -206,34 +208,14 @@ def test_datanommer_with_lambda_filter():
         )
     )
 
-    # Here we use a real message so we can test fedmsg.meta integration
-    message = Message(
-        topic="org.fedoraproject.prod.trac.git.receive",
-        body={
-            "commit": {
-                "username": "ralph",
-                "stats": {
-                    "files": {"README.rst": {"deletions": 0, "lines": 1, "insertions": 1}},
-                    "total": {"deletions": 0, "files": 1, "insertions": 1, "lines": 1},
-                },
-                "name": "Ralph Bean",
-                "rev": "24bcd20d08a68320f82951ce20959bc6a1a6e79c",
-                "agent": "ralph",
-                "summary": "Another commit to test fedorahosted fedmsg.",
-                "repo": "moksha",
-                "branch": "dev",
-                "message": "Another commit to test fedorahosted fedmsg.\n",
-                "email": "rbean@redhat.com",
-            }
-        },
-    )
+    message = example_real_bodhi_message
     returned_count = 0
 
     with patch("datanommer.models.Message.grep") as grep:
         grep.return_value = returned_count, 1, MockQuery(returned_count)
         result = criteria.matches(message)
         assert result is True
-        grep.assert_called_once_with(users=["ralph"], defer=True)
+        grep.assert_called_once_with(users=["lmacken"], defer=True)
 
 
 def test_datanommer_with_dotted_filter():
@@ -242,7 +224,7 @@ def test_datanommer_with_dotted_filter():
             datanommer={
                 "filter": {
                     "users": [
-                        "%(msg.commit.username)s",
+                        "%(msg.update.user.name)s",
                     ]
                 },
                 "operation": "count",
@@ -253,31 +235,11 @@ def test_datanommer_with_dotted_filter():
         )
     )
 
-    # Here we use a real message so we can test fedmsg.meta integration
-    message = Message(
-        topic="org.fedoraproject.prod.trac.git.receive",
-        body={
-            "commit": {
-                "username": "ralph",
-                "stats": {
-                    "files": {"README.rst": {"deletions": 0, "lines": 1, "insertions": 1}},
-                    "total": {"deletions": 0, "files": 1, "insertions": 1, "lines": 1},
-                },
-                "name": "Ralph Bean",
-                "rev": "24bcd20d08a68320f82951ce20959bc6a1a6e79c",
-                "agent": "ralph",
-                "summary": "Another commit to test fedorahosted fedmsg.",
-                "repo": "moksha",
-                "branch": "dev",
-                "message": "Another commit to test fedorahosted fedmsg.\n",
-                "email": "rbean@redhat.com",
-            }
-        },
-    )
+    message = example_real_bodhi_message
     returned_count = 0
 
     with patch("datanommer.models.Message.grep") as grep:
         grep.return_value = returned_count, 1, MockQuery(returned_count)
         result = criteria.matches(message)
         assert result is True
-        grep.assert_called_once_with(users=["ralph"], defer=True)
+        grep.assert_called_once_with(users=["hadess"], defer=True)

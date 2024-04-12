@@ -50,7 +50,7 @@ def format_args(obj, subs):
     if isinstance(obj, dict):
         for key in obj:
             obj[key] = format_args(obj[key], subs)
-    elif isinstance(obj, list):
+    elif isinstance(obj, list) or isinstance(obj, tuple):
         return [format_args(item, subs) for item in obj]
     elif isinstance(obj, str) and obj[2:-2] in subs:
         obj = subs[obj[2:-2]]

@@ -66,7 +66,7 @@ def test_lambdas_pass():
     """Test that lambdas match correctly"""
     trigger = fedbadges.rules.Trigger(
         {
-            "lambda": "'s3kr3t' in json.dumps(msg)",
+            "lambda": "'s3kr3t' in json.dumps(msg['msg'])",
         }
     )
     message = Message(body=dict(nested=dict(something="s3kr3t")))
@@ -77,7 +77,7 @@ def test_lambdas_fail():
     """Test that lambdas fail correctly"""
     trigger = fedbadges.rules.Trigger(
         {
-            "lambda": "'one string' in json.dumps(msg)",
+            "lambda": "'one string' in json.dumps(msg['msg'])",
         }
     )
     message = Message(body=dict(nested=dict(something="another string")))
