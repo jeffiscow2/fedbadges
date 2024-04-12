@@ -2,9 +2,9 @@
 
 # These are here just so they're available in globals()
 # for compiling lambda expressions
-import json  # noqa: F401
+import json
 import logging
-import re  # noqa: F401
+import re
 import sys
 import traceback
 import types
@@ -66,7 +66,12 @@ def single_argument_lambda_factory(expression, argument, name="value"):
     """Compile and execute a lambda expression with a single argument"""
 
     code = compile(f"lambda {name}: {expression}", __file__, "eval")
-    func = types.LambdaType(code, globals())()
+    lambda_globals = {
+        "__builtins__": __builtins__,
+        "json": json,
+        "re": re,
+    }
+    func = types.LambdaType(code, lambda_globals)()
     return func(argument)
 
 
