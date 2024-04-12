@@ -96,9 +96,8 @@ def graceful(default_return_value):
         def inner(self, *args, **kwargs):
             try:
                 return method(self, *args, **kwargs)
-            except Exception as e:
-                log.exception(e)
-                log.error(
+            except Exception:
+                log.exception(
                     "From method: %r self: %r args: %r kwargs: %r", method, self, args, kwargs
                 )
                 return default_return_value
@@ -153,7 +152,7 @@ def get_pagure_authors(authors):
                 if item["name"] is not None:
                     authors_name.append(item["name"])
             except KeyError as e:
-                raise Exception("Multiple recipients : name not found in the message") from e
+                raise ValueError("Multiple recipients: name not found in the message") from e
     return authors_name
 
 

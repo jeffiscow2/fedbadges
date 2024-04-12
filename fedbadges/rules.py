@@ -50,13 +50,10 @@ def github2fas(uri, config, fasjson):
         log.warning("Can't extract the username from %r", uri)
         return None
     github_username = m.group(1)
-    response = fasjson.search_users(github_username__exact=github_username)
-    if not response.ok:
+    result = fasjson.search_users(github_username__exact=github_username)
+    if len(result) != 1:
         return None
-    result = response.json()
-    if result["page"]["total_results"] != 1:
-        return None
-    return result["result"][0]["username"]
+    return result[0]["username"]
 
 
 def distgit2fas(uri, config):
@@ -162,16 +159,15 @@ class BadgeRule:
         self.recipient_krb2fas = self._d.get("recipient_krb2fas")
 
     def setup(self, tahrir: TahrirDatabase):
-        with tahrir.session.begin():
-            self.badge_id = self._d["badge_id"] = tahrir.add_badge(
-                name=self._d["name"],
-                image=self._d["image_url"],
-                desc=self._d["description"],
-                criteria=self._d["discussion"],
-                tags=",".join(self._d.get("tags", [])),
-                issuer_id=self.issuer_id,
-            )
-            tahrir.session.commit()
+        self.badge_id = self._d["badge_id"] = tahrir.add_badge(
+            name=self._d["name"],
+            image=self._d["image_url"],
+            desc=self._d["description"],
+            criteria=self._d["discussion"],
+            tags=",".join(self._d.get("tags", [])),
+            issuer_id=self.issuer_id,
+        )
+        tahrir.session.commit()
 
     def __getitem__(self, key):
         return self._d[key]
@@ -188,7 +184,7 @@ class BadgeRule:
         # Before proceeding further, let's see who would get this badge if
         # our more heavyweight checks matched up.  If the user specifies a
         # recipient_key, we can use that to extract the potential awardee.  If
-        # that is not specified, we just use `msg2usernames`.
+        # that is not specified, we just use `msg.usernames`.
         if self.recipient_key:
             subs = construct_substitutions(msg)
             obj = format_args(self.recipient_key, subs)
@@ -423,7 +419,7 @@ class DatanommerCriteria(AbstractSpecializedComparator):
             conditions = list(self.condition_callbacks.keys())
             raise ValueError("No more than one condition allowed.  " "Use one of %r" % conditions)
 
-        # Determine what arguments datanommer..grep accepts
+        # Determine what arguments datanommer.models.Message.grep accepts
         argspec = inspect.getfullargspec(datanommer.models.Message.grep)
         irrelevant = frozenset(["defer"])
         grep_arguments = frozenset(argspec.args[1:]).difference(irrelevant)

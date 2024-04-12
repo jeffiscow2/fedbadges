@@ -83,6 +83,8 @@ myst-parser = ">=0.16"
 liccheck = ">=0.6"
 pre-commit = ">=2.13"
 sphinxcontrib-napoleon = "*"
+bodhi-messages = "*"
+noggin-messages = "*"
 
 [tool.poetry.extras]
 schemas = [

@@ -52,7 +52,7 @@ fasjson_base_url = "https://fasjson.fedoraproject.org"
 [consumer_config.badge_issuer]
 issuer_id = "fedora"
 issuer_name = "Fedora Project"
-issuer_origin = "http://badges.fedoraproject.com"
+issuer_origin = "http://badges.fedoraproject.org"
 issuer_url = "http://fedoraproject.org"
 issuer_email = "badges@fedoraproject.org"
 
