@@ -8,3 +8,4 @@ build
 .tox
 .vagrant
 .coverage
+coverage.xml

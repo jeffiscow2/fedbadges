@@ -1,6 +1,3 @@
-import unittest
-
-import pytest
 from fedora_messaging.message import Message
 
 from fedbadges.utils import (
