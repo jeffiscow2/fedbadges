@@ -16,8 +16,6 @@ import fasjson_client
 import tahrir_api.dbapi
 from fedora_messaging.api import Message
 from fedora_messaging.config import conf as fm_config
-from sqlalchemy import create_engine
-from sqlalchemy.orm import scoped_session, sessionmaker
 
 from .aio import Periodic
 from .rulesrepo import RulesRepo
@@ -38,8 +36,6 @@ class FedoraBadgesConsumer:
         self.delay_limit = int(self.config.get("delay_limit", DEFAULT_DELAY_LIMIT))
         self.badge_rules = []
         self.lock = threading.Lock()
-        # Thread-local stuff
-        self.l = threading.local()
 
         self.loop = asyncio.get_event_loop()
         self._ready = self.loop.create_task(self.setup())
@@ -77,35 +73,22 @@ class FedoraBadgesConsumer:
         database_uri = self.config.get("database_uri")
         if not database_uri:
             raise ValueError("Badges consumer requires a database uri")
-        self.TahrirDbSession = scoped_session(
-            sessionmaker(
-                bind=create_engine(database_uri),
-            )
-        )
         issuer = self.config["badge_issuer"]
-
-        with self.TahrirDbSession() as session:
-            client = self._get_tahrir_client(session=session)
-            self.issuer_id = client.add_issuer(
-                issuer.get("issuer_origin"),
-                issuer.get("issuer_name"),
-                issuer.get("issuer_url"),
-                issuer.get("issuer_email"),
-            )
-            session.commit()
-
-    def _get_tahrir_client(self, session=None):
-        if hasattr(self.l, "tahrir"):
-            return self.l.tahrir
-
-        session = session or self.TahrirDbSession()
-        self.l.tahrir = tahrir_api.dbapi.TahrirDatabase(
-            session=session,
+        self.tahrir = tahrir_api.dbapi.TahrirDatabase(
+            dburi=database_uri,
             autocommit=False,
             notification_callback=notification_callback,
         )
-        session.commit()
-        return self.l.tahrir
+        self.issuer_id = self.tahrir.add_issuer(
+            issuer.get("issuer_origin"),
+            issuer.get("issuer_name"),
+            issuer.get("issuer_url"),
+            issuer.get("issuer_email"),
+        )
+        self.tahrir.session.commit()
+
+    def _get_tahrir_client(self, session=None):
+        return self.tahrir
 
     def _initialize_datanommer_connection(self):
         datanommer.models.init(self.config["datanommer_db_uri"])

@@ -4,9 +4,7 @@ from unittest.mock import Mock, patch
 import datanommer
 import pytest
 from fedora_messaging.config import conf
-from sqlalchemy import create_engine
 from tahrir_api import dbapi
-from tahrir_api.model import DBSession, DeclarativeBase
 
 from fedbadges.consumer import FedoraBadgesConsumer
 from fedbadges.rulesrepo import RulesRepo
@@ -43,13 +41,21 @@ def fm_config(tmp_path):
 
 
 @pytest.fixture()
-def badges_db(tmp_path):
+def notification_callback_mock():
+    return Mock(name="notification_callack")
+
+
+@pytest.fixture()
+def badges_db(tmp_path, notification_callback_mock):
     database_uri = f"sqlite:///{tmp_path.as_posix()}/badges.db"
-    engine = create_engine(database_uri)
-    DBSession.configure(bind=engine)
-    DeclarativeBase.metadata.create_all(engine)
-    yield
-    DBSession.rollback()
+    db = dbapi.TahrirDatabase(
+        dburi=database_uri,
+        autocommit=False,
+        notification_callback=notification_callback_mock,
+    )
+    db.db_mgr.sync()
+    yield db
+    db.session.rollback()
 
 
 @pytest.fixture()
@@ -65,27 +71,16 @@ def consumer(fm_config, badges_db, fasjson_client):
 
 
 @pytest.fixture()
-def notification_callback_mock():
-    return Mock(name="notification_callack")
-
-
-@pytest.fixture()
 def tahrir_client(fm_config, badges_db, notification_callback_mock):
     issuer = conf["consumer_config"]["badge_issuer"]
-    with DBSession() as session:
-        client = dbapi.TahrirDatabase(
-            session=session,
-            autocommit=False,
-            notification_callback=notification_callback_mock,
-        )
-        client.add_issuer(
-            issuer.get("issuer_origin"),
-            issuer.get("issuer_name"),
-            issuer.get("issuer_url"),
-            issuer.get("issuer_email"),
-        )
-        session.commit()
-        yield client
+    badges_db.add_issuer(
+        issuer.get("issuer_origin"),
+        issuer.get("issuer_name"),
+        issuer.get("issuer_url"),
+        issuer.get("issuer_email"),
+    )
+    badges_db.session.commit()
+    yield badges_db
 
 
 @pytest.fixture()

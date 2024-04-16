@@ -43,7 +43,7 @@ fedora-messaging = "^3.5.0"
 backoff = "^2.2.1"
 fasjson-client = "^1.0.8"
 click = "^8.0.0"
-tahrir-api = { git = "https://github.com/fedora-infra/tahrir-api.git", branch = "develop" }
+tahrir-api = "^1.0.0"
 
 # Message schemas. The reference list of all message schemas is in
 # https://github.com/fedora-infra/fedora-messaging/blob/develop/docs/schema-packages.txt

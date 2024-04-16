@@ -2769,6 +2769,25 @@ pymysql = ["pymysql"]
 sqlcipher = ["sqlcipher3_binary"]
 
 [[package]]
+name = "sqlalchemy-helpers"
+version = "0.13.0"
+description = "SQLAlchemy Helpers"
+optional = false
+python-versions = ">=3.8.0,<4.0.0"
+files = [
+    {file = "sqlalchemy_helpers-0.13.0-py3-none-any.whl", hash = "sha256:15667669dfd4c0bef77287b471c0a25a0664d7194947b990848362a6b3a6fad0"},
+    {file = "sqlalchemy_helpers-0.13.0.tar.gz", hash = "sha256:0a7f170300f68f990a6ac485de3955ab9bc9e66d8272ce5772b8e7a6490a77a2"},
+]
+
+[package.dependencies]
+alembic = ">=1.6.5"
+SQLAlchemy = ">=1.3.0"
+
+[package.extras]
+docs = ["Flask (>=2.0.0,<4.0.0)", "myst-parser", "sphinx", "sphinxcontrib-napoleon"]
+flask = ["Flask (>=2.0.0,<4.0.0)"]
+
+[[package]]
 name = "swagger-spec-validator"
 version = "3.0.3"
 description = "Validation of Swagger specifications"
@@ -2786,28 +2805,25 @@ typing-extensions = "*"
 
 [[package]]
 name = "tahrir-api"
-version = "0.8.1"
+version = "1.0.0"
 description = "An API for interacting with the Tahrir database"
 optional = false
-python-versions = "^3.9.0"
-files = []
-develop = false
+python-versions = "<4.0.0,>=3.9.0"
+files = [
+    {file = "tahrir_api-1.0.0-py3-none-any.whl", hash = "sha256:3ebbbf9f46d9734a0517dd254fdc356ddcab23b590f7f1d8cc95eb6ef91e6b3d"},
+    {file = "tahrir_api-1.0.0.tar.gz", hash = "sha256:f216d84f76e0855159a8845f4981da9dd662c5610eb303e2992d127d6569f515"},
+]
 
 [package.dependencies]
-alembic = "^1.13.1"
-arrow = "^1.3.0"
-fedora-messaging = "^3.5.0"
-pastedeploy = "^3.1.0"
-pygments = "^2.17.2"
-simplejson = "^3.19.2"
-sqlalchemy = "^2.0.29"
-tahrir-messages = "^1.0.2"
-
-[package.source]
-type = "git"
-url = "https://github.com/fedora-infra/tahrir-api.git"
-reference = "develop"
-resolved_reference = "63cea5b505d1444f069f344ec345cd62199c7c98"
+alembic = ">=1.13.1,<2.0.0"
+arrow = ">=1.3.0,<2.0.0"
+fedora-messaging = ">=3.5.0,<4.0.0"
+pastedeploy = ">=3.1.0,<4.0.0"
+pygments = ">=2.17.2,<3.0.0"
+simplejson = ">=3.19.2,<4.0.0"
+sqlalchemy = ">=2.0.29,<3.0.0"
+sqlalchemy-helpers = ">=0.13.0"
+tahrir-messages = ">=1.0.2,<2.0.0"
 
 [[package]]
 name = "tahrir-messages"
@@ -3135,4 +3151,4 @@ schemas = ["anitya-schema", "bodhi-messages", "bugzilla2fedmsg-schema", "ci-mess
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "110477040ef02d33034c1936763aa122293c44b57f892821b0f4bbe1bd6f8085"
+content-hash = "5188b8bbbe381a0a3da60aa1344d722aae82e94883d5b4b30b01e3cef594f3ea"
