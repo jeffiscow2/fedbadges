@@ -6,8 +6,13 @@ Changelog
 
 - Rebase on Fedora Messaging
 - Use Poetry
+- Use FASJSON Client
 - Make it work in Openshift
-- Lots of other changes, see the git log for details
+- Add CI with Github Actions
+- Drop badgrclient and go back to tahrir-api as the implementation was never finished
+- Use Black for formatting
+- Use Ruff for linting
+- Lots of other changes, see the `git log <https://github.com/fedora-infra/fedbadges/compare/1.0.3...2.0.0>`_ for details
 
 
 1.0.3
