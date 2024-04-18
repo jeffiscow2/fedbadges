@@ -26,7 +26,7 @@ def main(debug):
         uri,
         notification_callback=fedbadges.utils.notification_callback,
     )
-    badge = tahrir.get_badge("mugshot")
+    badge = tahrir.get_badge(badge_id="mugshot")
 
     persons = tahrir.get_all_persons()
     already_has_it = [assertion.person for assertion in badge.assertions]
@@ -58,7 +58,7 @@ def main(debug):
         if response.status_code == 200:
             log.info("%s totally gets the mugshot badge.", person.nickname)
             good.append(person)
-            award_badge(tahrir, badge.id, person.email, check_existing=False)
+            award_badge(tahrir, badge, person.email, check_existing=False)
         else:
             bad.append(person)
 
