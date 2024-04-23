@@ -17,7 +17,7 @@ import datanommer.models
 from fedora_messaging.api import Message
 from tahrir_api.dbapi import TahrirDatabase
 
-from fedbadges.cached import TopicUserCount
+from fedbadges.cached import NewBuilds, TopicCount
 from fedbadges.utils import (
     # These are all in-process utilities
     construct_substitutions,
@@ -397,6 +397,14 @@ class AbstractSpecializedComparator(AbstractComparator):
     pass
 
 
+class CachedDatanommerQuery:
+    def __init__(self, result):
+        self._result = result
+
+    def all(self):
+        return self._result
+
+
 class DatanommerCriteria(AbstractSpecializedComparator):
     required = possible = frozenset(
         [
@@ -469,15 +477,12 @@ class DatanommerCriteria(AbstractSpecializedComparator):
             users = get_pagure_authors(kwargs["users"])
             if users:
                 kwargs["users"] = users
+        return kwargs
 
-        if TopicUserCount.is_applicable(kwargs) and self._d["operation"] == "count":
-            cached_value = TopicUserCount()
-            total = cached_value.get(topic=kwargs["topics"][0], username=kwargs["users"][0])
-            return total, None, None
-
-        log.debug("Making datanommer query: %r", kwargs)
-        kwargs["defer"] = True
-        total, pages, query = datanommer.models.Message.grep(**kwargs)
+    def _make_query(self, search_kwargs):
+        log.debug("Making datanommer query: %r", search_kwargs)
+        search_kwargs["defer"] = True
+        total, pages, query = datanommer.models.Message.grep(**search_kwargs)
         query.all = lambda: datanommer.models.session.scalars(query).all()
         return total, pages, query
 
@@ -493,6 +498,30 @@ class DatanommerCriteria(AbstractSpecializedComparator):
         operation = format_args(copy.copy(self._d["operation"]), subs)
         return operation["lambda"]
 
+    def _get_value(self, msg: Message):
+        search_kwargs = self._construct_query(msg)
+
+        for CachedValue in (TopicCount, NewBuilds):
+            cached_value = CachedValue(search_kwargs=search_kwargs)
+            if not cached_value.is_applicable(self._d):
+                continue
+            log.debug(f"Using the cached datanommer value for {CachedValue.__name__}")
+            cached_value.on_message(msg)
+            return cached_value.get()
+
+        total, pages, query = self._make_query(search_kwargs)
+        if self._d["operation"] == "count":
+            result = total
+        elif isinstance(self._d["operation"], dict):
+            expression = self._format_lambda_operation(msg)
+            result = single_argument_lambda_factory(
+                expression=expression, argument=query, name="query"
+            )
+        else:
+            operation = getattr(query, self._d["operation"])
+            result = operation()
+        return result
+
     def matches(self, msg: Message):
         """A datanommer criteria check is composed of three steps.
 
@@ -504,15 +533,5 @@ class DatanommerCriteria(AbstractSpecializedComparator):
         - A condition, derived from our yaml definition, is evaluated with the
           result of the operation from the previous step and is returned.
         """
-        total, pages, query = self._construct_query(msg)
-        if self._d["operation"] == "count":
-            result = total
-        elif isinstance(self._d["operation"], dict):
-            expression = self._format_lambda_operation(msg)
-            result = single_argument_lambda_factory(
-                expression=expression, argument=query, name="query"
-            )
-        else:
-            operation = getattr(query, self._d["operation"])
-            result = operation()
+        result = self._get_value(msg)
         return self.condition(result)

@@ -20,7 +20,6 @@ from fedora_messaging.config import conf as fm_config
 
 from .aio import Periodic
 from .cached import cache
-from .cached import on_message as update_cache_on_message
 from .rulesrepo import RulesRepo
 from .utils import datanommer_has_message, notification_callback
 
@@ -135,8 +134,6 @@ class FedoraBadgesConsumer:
 
         # Award every badge as appropriate.
         log.debug("Received %s, %s", message.topic, message.id)
-
-        update_cache_on_message(message)
 
         tahrir = self._get_tahrir_client()
         for badge_rule in self.badge_rules:
