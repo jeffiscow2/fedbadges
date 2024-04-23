@@ -139,6 +139,7 @@ class BadgeRule:
             "bodhi",
             "taskotron",
             "pagure",
+            "distrobuildsync-eln/jenkins-continuous-infra.apps.ci.centos.org",
         ]
     )
 
