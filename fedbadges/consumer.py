@@ -6,6 +6,7 @@ Authors:  Ross Delinger
 """
 
 import asyncio
+import datetime
 import logging
 import threading
 import time
@@ -19,7 +20,7 @@ from fedora_messaging.config import conf as fm_config
 
 from .aio import Periodic
 from .rulesrepo import RulesRepo
-from .utils import notification_callback
+from .utils import datanommer_has_message, notification_callback
 
 
 log = logging.getLogger(__name__)
@@ -150,8 +151,8 @@ class FedoraBadgesConsumer:
         self.badge_rules = self._rules_repo.load_all(tahrir)
 
     def _wait_for_datanommer(self, message: Message):
+        yesterday = datetime.datetime.now() - datetime.timedelta(days=1)
         for _i in range(MAX_WAIT_DATANOMMER * 2):
-            dn_msg = datanommer.models.Message.from_msg_id(message.id)
-            if dn_msg is not None:
+            if datanommer_has_message(message.id, since=yesterday):
                 break
             time.sleep(0.5)

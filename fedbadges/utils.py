@@ -2,6 +2,7 @@
 
 # These are here just so they're available in globals()
 # for compiling lambda expressions
+import datetime
 import json
 import logging
 import re
@@ -10,7 +11,9 @@ import traceback
 import types
 
 import backoff
+import datanommer.models
 import fasjson_client
+import sqlalchemy as sa
 from fedora_messaging import api as fm_api
 from fedora_messaging import exceptions as fm_exceptions
 
@@ -181,3 +184,12 @@ def email2fas(email, fasjson):
     if not result:
         return None
     return result[0]
+
+
+def datanommer_has_message(msg_id: str, since: datetime.datetime | None = None):
+    query = sa.select(sa.func.count(datanommer.models.Message.id)).where(
+        datanommer.models.Message.msg_id == msg_id
+    )
+    if since is not None:
+        query = query.where(datanommer.models.Message.timestamp >= since)
+    return datanommer.models.session.scalar(query) > 0
