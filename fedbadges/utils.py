@@ -10,6 +10,7 @@ import traceback
 import types
 
 import backoff
+import fasjson_client
 from fedora_messaging import api as fm_api
 from fedora_messaging import exceptions as fm_exceptions
 
@@ -140,7 +141,7 @@ def notification_callback(message):
 
 def user_exists_in_fas(fasjson, user):
     """Return true if the user exists in FAS."""
-    return fasjson.get_user(username=user) is not None
+    return nick2fas(user, fasjson) is not None
 
 
 def get_pagure_authors(authors):
@@ -163,7 +164,12 @@ def get_pagure_authors(authors):
 
 def nick2fas(nick, fasjson):
     """Return the user in FAS."""
-    return fasjson.get_user(username=nick)
+    try:
+        return fasjson.get_user(username=nick)
+    except fasjson_client.errors.APIError as e:
+        if e.code == 404:
+            return None
+        raise
 
 
 def email2fas(email, fasjson):
