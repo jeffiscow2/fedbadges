@@ -47,6 +47,10 @@ distgit_hostname = "src.fedoraproject.org"
 id_provider_hostname = "id.fedoraproject.org"
 fasjson_base_url = "https://fasjson.fedoraproject.org"
 
+# Cache configuation
+[consumer_config.cache]
+backend = "dogpile.cache.memory"
+
 # This is a set of data that tells our consumer what Open Badges Issuer
 # should be kept as the issuer of all the badges we create.
 [consumer_config.badge_issuer]

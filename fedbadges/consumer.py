@@ -19,6 +19,8 @@ from fedora_messaging.api import Message
 from fedora_messaging.config import conf as fm_config
 
 from .aio import Periodic
+from .cached import cache
+from .cached import on_message as update_cache_on_message
 from .rulesrepo import RulesRepo
 from .utils import datanommer_has_message, notification_callback
 
@@ -50,6 +52,8 @@ class FedoraBadgesConsumer:
         # 1) Initialize our connection to the Tahrir DB
         # 2) Initialize our connection to the datanommer DB.
         # 3) Load our badge definitions and rules from YAML.
+        # Cache
+        await self.loop.run_in_executor(None, self._initialize_cache)
 
         # Tahrir stuff.
         await self.loop.run_in_executor(None, self._initialize_tahrir_connection)
@@ -70,6 +74,10 @@ class FedoraBadgesConsumer:
             partial(self.loop.run_in_executor, None, self._reload_rules), RULES_RELOAD_INTERVAL
         )
         await self._refresh_badges_task.start(run_now=True)
+
+    def _initialize_cache(self):
+        cache_args = self.config.get("cache")
+        cache.configure(**cache_args)
 
     def _initialize_tahrir_connection(self):
         database_uri = self.config.get("database_uri")
@@ -128,6 +136,9 @@ class FedoraBadgesConsumer:
 
         # Award every badge as appropriate.
         log.debug("Received %s, %s", message.topic, message.id)
+
+        update_cache_on_message(message)
+
         tahrir = self._get_tahrir_client()
         for badge_rule in self.badge_rules:
             try:

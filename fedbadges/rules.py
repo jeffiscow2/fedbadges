@@ -17,6 +17,7 @@ import datanommer.models
 from fedora_messaging.api import Message
 from tahrir_api.dbapi import TahrirDatabase
 
+from fedbadges.cached import TopicUserCount
 from fedbadges.utils import (
     # These are all in-process utilities
     construct_substitutions,
@@ -468,6 +469,12 @@ class DatanommerCriteria(AbstractSpecializedComparator):
             users = get_pagure_authors(kwargs["users"])
             if users:
                 kwargs["users"] = users
+
+        if TopicUserCount.is_applicable(kwargs) and self._d["operation"] == "count":
+            cached_value = TopicUserCount()
+            total = cached_value.get(topic=kwargs["topics"][0], username=kwargs["users"][0])
+            return total, None, None
+
         log.debug("Making datanommer query: %r", kwargs)
         kwargs["defer"] = True
         total, pages, query = datanommer.models.Message.grep(**kwargs)

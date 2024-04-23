@@ -48,6 +48,13 @@ id_provider_hostname = "id.tinystage.test"
 fasjson_base_url = "https://fasjson.tinystage.test/fasjson"
 
 
+# Cache configuation
+[consumer_config.cache]
+backend = "dogpile.cache.dbm"
+expiration_time = 10000
+[consumer_config.cache.arguments]
+filename = /home/vagrant/cache-fedbadges.dbm
+
 # This is a set of data that tells our consumer what Open Badges Issuer
 # should be kept as the issuer of all the badges we create.
 [consumer_config.badge_issuer]
