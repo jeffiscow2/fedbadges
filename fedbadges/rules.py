@@ -469,6 +469,7 @@ class DatanommerCriteria(AbstractSpecializedComparator):
         log.debug("Making datanommer query: %r", kwargs)
         kwargs["defer"] = True
         total, pages, query = datanommer.models.Message.grep(**kwargs)
+        query.all = lambda: datanommer.models.session.scalars(query).all()
         return total, pages, query
 
     def _format_lambda_operation(self, msg):
