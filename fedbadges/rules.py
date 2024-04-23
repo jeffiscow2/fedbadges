@@ -264,6 +264,10 @@ class BadgeRule:
             ]
         )
 
+        # Make sure the person actually has a FAS account before we award anything.
+        # https://github.com/fedora-infra/tahrir/issues/225
+        awardees = set([u for u in awardees if user_exists_in_fas(self.fasjson, u)])
+
         # If no-one would get the badge at this point, then no reason to waste
         # time doing any further checks.  No need to query datanommer.
         if not awardees:
@@ -276,11 +280,6 @@ class BadgeRule:
         except OSError:
             log.exception("Failed checking criteria for rule %s", self.badge_id)
             return set()
-
-        # Lastly, and this is probably most expensive.  Make sure the person
-        # actually has a FAS account before we award anything.
-        # https://github.com/fedora-infra/tahrir/issues/225
-        awardees = set([u for u in awardees if user_exists_in_fas(self.fasjson, u)])
 
         return awardees
 
