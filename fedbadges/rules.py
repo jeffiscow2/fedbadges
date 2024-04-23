@@ -140,6 +140,7 @@ class BadgeRule:
             "taskotron",
             "pagure",
             "packit",
+            "koschei",
             "distrobuildsync-eln/jenkins-continuous-infra.apps.ci.centos.org",
         ]
     )
