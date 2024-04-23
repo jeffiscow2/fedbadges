@@ -138,6 +138,7 @@ class BadgeRule:
             "koji",
             "bodhi",
             "taskotron",
+            "pagure",
         ]
     )
 
@@ -181,6 +182,7 @@ class BadgeRule:
         if not self.trigger.matches(msg):
             return set()
 
+        log.debug("Checking match for rule %s", self.badge_id)
         # Before proceeding further, let's see who would get this badge if
         # our more heavyweight checks matched up.  If the user specifies a
         # recipient_key, we can use that to extract the potential awardee.  If
@@ -308,7 +310,7 @@ class AbstractTopLevelComparator(AbstractComparator):
 
         if len(self._d) > 1:
             raise ValueError(
-                "No more than one trigger allowed.  " "Use an operator, one of %r" % operators
+                "No more than one trigger allowed. Use an operator, one of %r" % operators
             )
         self.attribute = next(iter(self._d))
         self.expected_value = self._d[self.attribute]
@@ -419,7 +421,7 @@ class DatanommerCriteria(AbstractSpecializedComparator):
         super().__init__(*args, **kwargs)
         if len(self._d["condition"]) > 1:
             conditions = list(self.condition_callbacks.keys())
-            raise ValueError("No more than one condition allowed.  " "Use one of %r" % conditions)
+            raise ValueError("No more than one condition allowed.  Use one of %r" % conditions)
 
         # Determine what arguments datanommer.models.Message.grep accepts
         argspec = inspect.getfullargspec(datanommer.models.Message.grep)
@@ -464,6 +466,7 @@ class DatanommerCriteria(AbstractSpecializedComparator):
             users = get_pagure_authors(kwargs["users"])
             if users:
                 kwargs["users"] = users
+        log.debug("Making datanommer query: %r", kwargs)
         kwargs["defer"] = True
         total, pages, query = datanommer.models.Message.grep(**kwargs)
         return total, pages, query
