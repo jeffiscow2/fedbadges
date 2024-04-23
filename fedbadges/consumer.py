@@ -26,6 +26,7 @@ log = logging.getLogger(__name__)
 
 DEFAULT_DELAY_LIMIT = 100
 RULES_RELOAD_INTERVAL = 15 * 60  # 15 minutes
+MAX_WAIT_DATANOMMER = 5  # seconds
 
 
 class FedoraBadgesConsumer:
@@ -149,7 +150,7 @@ class FedoraBadgesConsumer:
         self.badge_rules = self._rules_repo.load_all(tahrir)
 
     def _wait_for_datanommer(self, message: Message):
-        while True:
+        for _i in range(MAX_WAIT_DATANOMMER * 2):
             dn_msg = datanommer.models.Message.from_msg_id(message.id)
             if dn_msg is not None:
                 break
