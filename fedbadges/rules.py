@@ -17,7 +17,7 @@ import datanommer.models
 from fedora_messaging.api import Message
 from tahrir_api.dbapi import TahrirDatabase
 
-from fedbadges.cached import NewBuilds, TopicCount
+from fedbadges.cached import FailedBuilds, SuccessfulBuilds, TopicCount
 from fedbadges.utils import (
     # These are all in-process utilities
     construct_substitutions,
@@ -501,11 +501,12 @@ class DatanommerCriteria(AbstractSpecializedComparator):
     def _get_value(self, msg: Message):
         search_kwargs = self._construct_query(msg)
 
-        for CachedValue in (TopicCount, NewBuilds):
+        for CachedValue in (TopicCount, SuccessfulBuilds, FailedBuilds):
             cached_value = CachedValue(search_kwargs=search_kwargs)
             if not cached_value.is_applicable(self._d):
+                log.debug("%s is not applicable to %r", CachedValue.__name__, self._d)
                 continue
-            log.debug(f"Using the cached datanommer value for {CachedValue.__name__}")
+            log.debug("Using the cached datanommer value for %s", CachedValue.__name__)
             cached_value.on_message(msg)
             return cached_value.get()
 

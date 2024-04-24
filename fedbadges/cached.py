@@ -87,7 +87,9 @@ class TopicCount(CachedDatanommerQuery):
         self._update_if_exists(self.cache_kwargs, lambda v: v + 1)
 
 
-class NewBuilds(CachedDatanommerQuery):
+class CachedBuildState(CachedDatanommerQuery):
+
+    STATE = None
 
     @property
     def cache_kwargs(self):
@@ -97,7 +99,7 @@ class NewBuilds(CachedDatanommerQuery):
 
     def compute(self, *, topic, username):
         _total, _pages, messages = datanommer.models.Message.grep(topics=[topic], users=[username])
-        return sum(1 for msg in messages if msg.msg["new"] == 1)
+        return sum(1 for msg in messages if msg.msg["new"] == self.STATE)
 
     def is_applicable(self, badge_dict):
         """Return whether we can use this cached value for this datanommer query"""
@@ -109,12 +111,22 @@ class NewBuilds(CachedDatanommerQuery):
             return False
         if (
             badge_dict.get("operation", {}).get("lambda")
-            != "sum(1 for msg in query.all() if msg.msg['new'] == 1)"
+            != f"sum(1 for msg in query.all() if msg.msg['new'] == {self.STATE})"
         ):
             return False
         return _query_has_single_arg(self._search_kwargs, ["topics", "users"])
 
     def on_message(self, message: Message):
-        if message.body["new"] != 1:
+        if message.body["new"] != self.STATE:
             return
         self._update_if_exists(self.cache_kwargs, lambda v: v + 1)
+
+
+class SuccessfulBuilds(CachedBuildState):
+
+    STATE = 1
+
+
+class FailedBuilds(CachedBuildState):
+
+    STATE = 3
