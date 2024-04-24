@@ -116,7 +116,7 @@ def graceful(default_return_value):
     return decorate
 
 
-def _backoff_hdlr(details):
+def _publish_backoff_hdlr(details):
     log.warning(f"Publishing message failed. Retrying. {traceback.format_tb(sys.exc_info()[2])}")
 
 
@@ -124,7 +124,7 @@ def _backoff_hdlr(details):
     backoff.expo,
     (fm_exceptions.ConnectionException, fm_exceptions.PublishException),
     max_tries=3,
-    on_backoff=_backoff_hdlr,
+    on_backoff=_publish_backoff_hdlr,
 )
 def _publish(message):
     fm_api.publish(message)
@@ -165,6 +165,16 @@ def get_pagure_authors(authors):
     return authors_name
 
 
+def _fasjson_backoff_hdlr(details):
+    log.warning(f"FASJSON call failed. Retrying. {traceback.format_tb(sys.exc_info()[2])}")
+
+
+@backoff.on_exception(
+    backoff.expo,
+    (ConnectionError, TimeoutError),
+    max_tries=3,
+    on_backoff=_fasjson_backoff_hdlr,
+)
 def nick2fas(nick, fasjson):
     """Return the user in FAS."""
     try:
@@ -180,7 +190,17 @@ def email2fas(email, fasjson):
     if email.endswith("@fedoraproject.org"):
         return nick2fas(email.rsplit("@", 1)[0], fasjson)
 
-    result = fasjson.search_users(email=email)
+    @backoff.on_exception(
+        backoff.expo,
+        (ConnectionError, TimeoutError),
+        max_tries=3,
+        on_backoff=_fasjson_backoff_hdlr,
+    )
+    def _search_user(email):
+        return fasjson.search_users(email=email)
+
+    result = _search_user(email)
+
     if not result:
         return None
     return result[0]
