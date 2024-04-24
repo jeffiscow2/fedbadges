@@ -501,13 +501,25 @@ class DatanommerCriteria(AbstractSpecializedComparator):
     def _get_value(self, msg: Message):
         search_kwargs = self._construct_query(msg)
 
+        # Try cached values
         for CachedValue in (TopicCount, SuccessfulBuilds, FailedBuilds):
             cached_value = CachedValue(search_kwargs=search_kwargs)
             if not cached_value.is_applicable(self._d):
-                log.debug("%s is not applicable to %r", CachedValue.__name__, self._d)
+                log.debug(
+                    "%s with kwargs %r is not applicable to %r",
+                    CachedValue.__name__,
+                    search_kwargs,
+                    self._d,
+                )
                 continue
-            log.debug("Using the cached datanommer value for %s", CachedValue.__name__)
-            cached_value.on_message(msg)
+            log.debug(
+                "Using the cached datanommer value for %s on %r",
+                CachedValue.__name__,
+                search_kwargs,
+            )
+            # Don't update the cache here, there are ~100 rules for a single incoming message and
+            # each could be increasing the value while there's only one actual message.
+            # cached_value.on_message(msg)
             return cached_value.get()
 
         total, pages, query = self._make_query(search_kwargs)
