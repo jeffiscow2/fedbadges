@@ -105,12 +105,11 @@ class FedoraBadgesConsumer:
 
     def award_badge(self, username, badge_rule, link=None):
         email = f"{username}@fedoraproject.org"
-        with self.TahrirDbSession() as session:
-            client = self._get_tahrir_client(session)
-            client.add_person(email)
-            session.commit()
-            client.add_assertion(badge_rule.badge_id, email, None, link)
-            session.commit()
+        client = self._get_tahrir_client(self.tahrir.session)
+        client.add_person(email)
+        self.tahrir.session.commit()
+        client.add_assertion(badge_rule.badge_id, email, None, link)
+        self.tahrir.session.commit()
 
     def __call__(self, message: Message):
         # First thing, we receive the message, but we put ourselves to sleep to
