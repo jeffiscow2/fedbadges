@@ -1,3 +1,4 @@
+import datetime
 import logging
 from contextlib import suppress
 
@@ -19,6 +20,25 @@ def _query_has_single_arg(search_kwargs, required_kwargs):
     if query_keys != set(required_kwargs):
         return False
     return all(len(search_kwargs[arg]) == 1 for arg in required_kwargs)
+
+
+class CachedDatanommerMessage:
+    def __init__(self, message: Message):
+        self.msg_id = (message.id,)
+        self.topic = (message.topic,)
+        self.timestamp = (datetime.datetime.now(tz=datetime.timezone.utc),)
+        self.msg = (message.body,)
+        self.headers = (message._properties.headers,)
+        self.users = message.usernames
+        self.packages = message.packages
+
+
+class CachedDatanommerQuery:
+    def __init__(self, result):
+        self._result = result
+
+    def all(self):
+        return self._result
 
 
 class CachedValue:
@@ -46,87 +66,114 @@ class CachedValue:
             return  # Don't update the value if no one has ever requested it
         cache.set(key, update_fn(current_value))
 
-    def is_applicable(cls, *args, **kwargs):
+    def is_applicable(self, *args, **kwargs):
         raise NotImplementedError
 
 
-class CachedDatanommerQuery(CachedValue):
-    def __init__(self, search_kwargs):
-        super().__init__()
-        self._search_kwargs = search_kwargs
+class CachedDatanommerValue(CachedValue):
 
-    @property
     def cache_kwargs(self):
         raise NotImplementedError
 
-    def get(self):
-        return super().get(**self.cache_kwargs)
+    def get(self, search_kwargs):
+        return super().get(**self.cache_kwargs(search_kwargs))
 
 
-class TopicCount(CachedDatanommerQuery):
+class TopicAndUserQuery(CachedDatanommerValue):
 
-    @property
-    def cache_kwargs(self):
-        return dict(
-            topic=self._search_kwargs["topics"][0], username=self._search_kwargs["users"][0]
-        )
+    def cache_kwargs(self, search_kwargs):
+        return dict(topic=search_kwargs["topics"][0], username=search_kwargs["users"][0])
+
+    def compute(self, *, topic, username):
+        total, _pages, messages = datanommer.models.Message.grep(topics=[topic], users=[username])
+        return total, messages
+
+    def is_applicable(self, search_kwargs, badge_dict):
+        """Return whether we can use this cached value for this datanommer query"""
+        return _query_has_single_arg(search_kwargs, ["topics", "users"])
+
+    def on_message(self, message: Message):
+        def _append_message(result):
+            total, messages = result
+            messages.append(CachedDatanommerMessage(message))
+            return total + 1, messages
+
+        for username in message.usernames:
+            self._update_if_exists({"topic": message.topic, "username": username}, _append_message)
+
+
+class TopicCount(TopicAndUserQuery):
 
     def compute(self, *, topic, username):
         total, pages, query = datanommer.models.Message.grep(
             topics=[topic], users=[username], defer=True
         )
-        return total
+        return total, None
 
-    def is_applicable(self, badge_dict):
+    def is_applicable(self, search_kwargs, badge_dict):
         """Return whether we can use this cached value for this datanommer query"""
-        if badge_dict.get("operation") != "count":
+        if not super().is_applicable(search_kwargs, badge_dict):
             return False
-        return _query_has_single_arg(self._search_kwargs, ["topics", "users"])
+        return badge_dict.get("operation") == "count"
 
     def on_message(self, message: Message):
-        self._update_if_exists(self.cache_kwargs, lambda v: v + 1)
+        for username in message.usernames:
+            self._update_if_exists(
+                {"topic": message.topic, "username": username}, lambda v: (v[0] + 1, None)
+            )
 
 
-class CachedBuildState(CachedDatanommerQuery):
+# class CachedBuildState(TopicAndUserQuery):
+#
+#     STATE = None
+#
+#     def compute(self, *, topic, username):
+#         _total, _pages, messages = datanommer.models.Message.grep(
+#             topics=[topic], users=[username]
+#         )
+#         return sum(1 for msg in messages if msg.msg["new"] == self.STATE)
+#
+#     def is_applicable(self, search_kwargs, badge_dict):
+#         """Return whether we can use this cached value for this datanommer query"""
+#         if not super().is_applicable(search_kwargs, badge_dict):
+#             return False
+#         topic = search_kwargs["topics"][0]
+#         if not topic.endswith("buildsys.build.state.change"):
+#             return False
+#         if (
+#             badge_dict.get("operation", {}).get("lambda")
+#             != f"sum(1 for msg in query.all() if msg.msg['new'] == {self.STATE})"
+#         ):
+#             return False
+#         return True
+#
+#     def on_message(self, message: Message):
+#         if message.body["new"] != self.STATE:
+#             return
+#         for username in message.usernames:
+#             self._update_if_exists(
+#                 {"topic": message.topic, "username": username}, lambda v: v + 1
+#             )
+#         self._update_if_exists(self.cache_kwargs, lambda v: v + 1)
+#
+#
+# class SuccessfulBuilds(CachedBuildState):
+#
+#     STATE = 1
+#
+#
+# class FailedBuilds(CachedBuildState):
+#
+#     STATE = 3
 
-    STATE = None
 
-    @property
-    def cache_kwargs(self):
-        return dict(
-            topic=self._search_kwargs["topics"][0], username=self._search_kwargs["users"][0]
-        )
-
-    def compute(self, *, topic, username):
-        _total, _pages, messages = datanommer.models.Message.grep(topics=[topic], users=[username])
-        return sum(1 for msg in messages if msg.msg["new"] == self.STATE)
-
-    def is_applicable(self, badge_dict):
-        """Return whether we can use this cached value for this datanommer query"""
-        try:
-            topic = self._search_kwargs["topics"][0]
-        except (KeyError, IndexError):
-            return False
-        if not topic.endswith("buildsys.build.state.change"):
-            return False
-        if (
-            badge_dict.get("operation", {}).get("lambda")
-            != f"sum(1 for msg in query.all() if msg.msg['new'] == {self.STATE})"
-        ):
-            return False
-        return _query_has_single_arg(self._search_kwargs, ["topics", "users"])
-
-    def on_message(self, message: Message):
-        if message.body["new"] != self.STATE:
-            return
-        self._update_if_exists(self.cache_kwargs, lambda v: v + 1)
+# Most specific to less specific
+DATANOMMER_CACHED_VALUES = (TopicCount, TopicAndUserQuery)
+# All the cached values, datanommer and others (ok there aren't any others yet)
+CACHED_VALUES = DATANOMMER_CACHED_VALUES
 
 
-class SuccessfulBuilds(CachedBuildState):
-
-    STATE = 1
-
-
-class FailedBuilds(CachedBuildState):
-
-    STATE = 3
+def on_message(msg: Message):
+    for CachedValue in CACHED_VALUES:
+        cached_value = CachedValue()
+        cached_value.on_message(msg)

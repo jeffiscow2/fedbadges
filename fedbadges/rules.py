@@ -17,7 +17,7 @@ import datanommer.models
 from fedora_messaging.api import Message
 from tahrir_api.dbapi import TahrirDatabase
 
-from fedbadges.cached import FailedBuilds, SuccessfulBuilds, TopicCount
+from fedbadges.cached import CachedDatanommerQuery, DATANOMMER_CACHED_VALUES
 from fedbadges.utils import (
     # These are all in-process utilities
     construct_substitutions,
@@ -397,14 +397,6 @@ class AbstractSpecializedComparator(AbstractComparator):
     pass
 
 
-class CachedDatanommerQuery:
-    def __init__(self, result):
-        self._result = result
-
-    def all(self):
-        return self._result
-
-
 class DatanommerCriteria(AbstractSpecializedComparator):
     required = possible = frozenset(
         [
@@ -486,25 +478,12 @@ class DatanommerCriteria(AbstractSpecializedComparator):
         query.all = lambda: datanommer.models.session.scalars(query).all()
         return total, pages, query
 
-    def _format_lambda_operation(self, msg):
-        """Format the string representation of a lambda operation.
-
-        The lambda operation can be formatted here to include strings that
-        appear in the message being evaluated like
-        %(msg.comment.update_submitter)s.  Placeholders like that will have
-        their value substituted with whatever appears in the incoming message.
-        """
-        subs = construct_substitutions(msg)
-        operation = format_args(copy.copy(self._d["operation"]), subs)
-        return operation["lambda"]
-
-    def _get_value(self, msg: Message):
+    def _try_cache_or_make_query(self, msg: Message):
         search_kwargs = self._construct_query(msg)
-
         # Try cached values
-        for CachedValue in (TopicCount, SuccessfulBuilds, FailedBuilds):
-            cached_value = CachedValue(search_kwargs=search_kwargs)
-            if not cached_value.is_applicable(self._d):
+        for CachedValue in DATANOMMER_CACHED_VALUES:
+            cached_value = CachedValue()
+            if not cached_value.is_applicable(search_kwargs, self._d):
                 log.debug(
                     "%s with kwargs %r is not applicable to %r",
                     CachedValue.__name__,
@@ -520,9 +499,27 @@ class DatanommerCriteria(AbstractSpecializedComparator):
             # Don't update the cache here, there are ~100 rules for a single incoming message and
             # each could be increasing the value while there's only one actual message.
             # cached_value.on_message(msg)
-            return cached_value.get()
+            total, messages = cached_value.get(search_kwargs)
+            query = CachedDatanommerQuery(messages)
+            return total, query
 
         total, pages, query = self._make_query(search_kwargs)
+        return total, query
+
+    def _format_lambda_operation(self, msg):
+        """Format the string representation of a lambda operation.
+
+        The lambda operation can be formatted here to include strings that
+        appear in the message being evaluated like
+        %(msg.comment.update_submitter)s.  Placeholders like that will have
+        their value substituted with whatever appears in the incoming message.
+        """
+        subs = construct_substitutions(msg)
+        operation = format_args(copy.copy(self._d["operation"]), subs)
+        return operation["lambda"]
+
+    def _get_value(self, msg: Message):
+        total, query = self._try_cache_or_make_query(msg)
         if self._d["operation"] == "count":
             result = total
         elif isinstance(self._d["operation"], dict):

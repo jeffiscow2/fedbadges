@@ -20,6 +20,7 @@ from fedora_messaging.config import conf as fm_config
 
 from .aio import Periodic
 from .cached import cache
+from .cached import on_message as update_cached_values
 from .rulesrepo import RulesRepo
 from .utils import datanommer_has_message, notification_callback
 
@@ -126,6 +127,9 @@ class FedoraBadgesConsumer:
 
         self._wait_for_datanommer(message)
 
+        log.debug("Updating cached values for %s on %s", message.id, message.topic)
+        update_cached_values(message)
+
         datagrepper_url = self.config["datagrepper_url"]
         link = f"{datagrepper_url}/id?id={message.id}&is_raw=true&size=extra-large"
 
@@ -133,7 +137,7 @@ class FedoraBadgesConsumer:
         badge_rule = None
 
         # Award every badge as appropriate.
-        log.debug("Received %s, %s", message.topic, message.id)
+        log.debug("Processing rules for %s on %s", message.id, message.topic)
 
         tahrir = self._get_tahrir_client()
         for badge_rule in self.badge_rules:
