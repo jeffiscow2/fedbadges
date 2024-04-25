@@ -1,6 +1,7 @@
 import datetime
 import logging
 from contextlib import suppress
+from functools import partial
 
 import datanommer.models
 from dogpile.cache import make_region
@@ -78,6 +79,31 @@ class CachedDatanommerValue(CachedValue):
     def get(self, search_kwargs):
         return super().get(**self.cache_kwargs(search_kwargs))
 
+    def _run_query(self, **grep_kwargs):
+        total, _pages, messages_or_query = datanommer.models.Message.grep(**grep_kwargs)
+        return total, messages_or_query
+
+    def _append_message(self, message, result):
+        total, messages = result
+        messages.append(CachedDatanommerMessage(message))
+        return total + 1, messages
+
+
+class TopicQuery(CachedDatanommerValue):
+
+    def cache_kwargs(self, search_kwargs):
+        return dict(topic=search_kwargs["topics"][0])
+
+    def compute(self, *, topic):
+        return self._run_query(topics=[topic])
+
+    def is_applicable(self, search_kwargs, badge_dict):
+        """Return whether we can use this cached value for this datanommer query"""
+        return _query_has_single_arg(search_kwargs, ["topics"])
+
+    def on_message(self, message: Message):
+        self._update_if_exists({"topic": message.topic}, partial(self._append_message, message))
+
 
 class TopicAndUserQuery(CachedDatanommerValue):
 
@@ -85,19 +111,14 @@ class TopicAndUserQuery(CachedDatanommerValue):
         return dict(topic=search_kwargs["topics"][0], username=search_kwargs["users"][0])
 
     def compute(self, *, topic, username):
-        total, _pages, messages = datanommer.models.Message.grep(topics=[topic], users=[username])
-        return total, messages
+        return self._run_query(topics=[topic], users=[username])
 
     def is_applicable(self, search_kwargs, badge_dict):
         """Return whether we can use this cached value for this datanommer query"""
         return _query_has_single_arg(search_kwargs, ["topics", "users"])
 
     def on_message(self, message: Message):
-        def _append_message(result):
-            total, messages = result
-            messages.append(CachedDatanommerMessage(message))
-            return total + 1, messages
-
+        _append_message = partial(self._append_message, message)
         for username in message.usernames:
             self._update_if_exists({"topic": message.topic, "username": username}, _append_message)
 
@@ -105,10 +126,7 @@ class TopicAndUserQuery(CachedDatanommerValue):
 class TopicCount(TopicAndUserQuery):
 
     def compute(self, *, topic, username):
-        total, pages, query = datanommer.models.Message.grep(
-            topics=[topic], users=[username], defer=True
-        )
-        return total, None
+        return self._run_query(topics=[topic], users=[username], defer=True)
 
     def is_applicable(self, search_kwargs, badge_dict):
         """Return whether we can use this cached value for this datanommer query"""
@@ -168,7 +186,7 @@ class TopicCount(TopicAndUserQuery):
 
 
 # Most specific to less specific
-DATANOMMER_CACHED_VALUES = (TopicCount, TopicAndUserQuery)
+DATANOMMER_CACHED_VALUES = (TopicCount, TopicAndUserQuery, TopicQuery)
 # All the cached values, datanommer and others (ok there aren't any others yet)
 CACHED_VALUES = DATANOMMER_CACHED_VALUES
 
