@@ -25,11 +25,11 @@ def _query_has_single_arg(search_kwargs, required_kwargs):
 
 class CachedDatanommerMessage:
     def __init__(self, message: Message):
-        self.msg_id = (message.id,)
-        self.topic = (message.topic,)
+        self.msg_id = message.id
+        self.topic = message.topic
         self.timestamp = (datetime.datetime.now(tz=datetime.timezone.utc),)
-        self.msg = (message.body,)
-        self.headers = (message._properties.headers,)
+        self.msg = message.body
+        self.headers = message._properties.headers
         self.users = message.usernames
         self.packages = message.packages
 
