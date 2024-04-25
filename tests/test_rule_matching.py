@@ -70,7 +70,7 @@ def test_full_simple_success(fasjson_client, tahrir_client):
         f.return_value = 1, 1, MockQuery()
         with patch("fedbadges.rules.user_exists_in_fas") as g:
             g.return_value = True
-            assert rule.matches(msg, tahrir_client) == set(["lmacken", "hadess"])
+            assert rule.matches(msg, tahrir_client) == {"lmacken"}
 
 
 def test_full_simple_match_almost_succeed(fasjson_client, tahrir_client):
@@ -134,7 +134,7 @@ def test_yaml_specified_awardee_success(fasjson_client, tahrir_client):
                     condition={"greater than or equal to": 1},
                 )
             ),
-            recipient="%(msg.agent.username)s",
+            recipient=["%(msg.agent.username)s", "%(msg.user.username)s"],
         ),
         1,
         None,
@@ -155,7 +155,7 @@ def test_yaml_specified_awardee_success(fasjson_client, tahrir_client):
         f.return_value = 1, 1, MockQuery()
         with patch("fedbadges.rules.user_exists_in_fas") as g:
             g.return_value = True
-            assert rule.matches(msg, tahrir_client) == set(["toshio"])
+            assert rule.matches(msg, tahrir_client) == {"toshio", "ralph"}
 
 
 def test_yaml_specified_awardee_failure(fasjson_client, tahrir_client):
@@ -198,7 +198,7 @@ def test_yaml_specified_awardee_failure(fasjson_client, tahrir_client):
         f.return_value = 1, 1, MockQuery()
         with patch("fedbadges.rules.user_exists_in_fas") as g:
             g.return_value = True
-            assert rule.matches(msg, tahrir_client) == set(["toshio", "ralph"])
+            assert rule.matches(msg, tahrir_client) == {"toshio"}
 
 
 def test_against_duplicates(fasjson_client, tahrir_client):
@@ -220,6 +220,7 @@ def test_against_duplicates(fasjson_client, tahrir_client):
                     condition={"greater than or equal to": 1},
                 )
             ),
+            recipient="%(usernames)s",
         ),
         1,
         None,

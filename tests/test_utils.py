@@ -22,6 +22,7 @@ def test_substitutions_basic():
         "msg.a.b": dict(c=42),
         "msg.a.b.c": 42,
         "topic": "",
+        "usernames": [],
     }
     actual = construct_substitutions(msg)
     assert actual == target
@@ -50,6 +51,8 @@ def test_substitutions_real():
         topic="org.fedoraproject.dev.askbot.post.edit",
     )
     target = {
+        "topic": "org.fedoraproject.dev.askbot.post.edit",
+        "usernames": [],
         "msg.post.text": "alskdfjalskdjf alkjasdalskdjf ...",
         "msg.thread.title": "alskdjflaksjdf lakjsf a",
         "msg.post.vote_down_count": 0,
@@ -57,7 +60,6 @@ def test_substitutions_real():
         "msg.thread.pk": 2,
         "msg.newly_mentioned_users": [],
         "msg.diff": "<p>alskdfj... the diff is actually here",
-        "topic": "org.fedoraproject.dev.askbot.post.edit",
         "msg.agent": "ralph",
         "msg.post.comment_count": 0,
         "msg.post": {

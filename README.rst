@@ -51,12 +51,12 @@ a ``trigger``, and a set of ``criteria``) is defined on disk as a yaml file.
   service).
 
 * If a badge's ``trigger`` and ``criteria`` both match, then the badge is
-  awarded.  If the BadgeRule doesn't specify, we award the badge to all
-  usernames returned by the message's ``usernames`` property.
+  awarded.  If the BadgeRule doesn't specify, we award the badge to the
+  author of the action using the message's ``agent_name`` property.
 
   That is usually correct -- but sometimes, a BadgeRule needs to specify
-  that one particular user (not all related users) should be recipients of
-  the badge.  In this case, the BadgeRule may define a ``recipient``
+  that one particular user should be recipient of the badge.
+  In this case, the BadgeRule may define a ``recipient``
   in dot-notation that instructs the ``Consumer`` how to extract the
   recipient's username from the received message.
 
@@ -190,7 +190,7 @@ Here's a more interesting criteria definition::
       filter:
         topics:
         - org.fedoraproject.prod.git.receive
-        usernames:
+        users:
         - "%(msg.commit.username)s"
       operation: count
       condition:
@@ -229,7 +229,7 @@ statement you provide into a callable and use that at runtime.  For example::
       filter:
         topics:
         - org.fedoraproject.prod.git.receive
-        usernames:
+        users:
         - "%(msg.commit.username)s"
       operation: count
       condition:
@@ -243,21 +243,20 @@ Specifying Recipients
 ~~~~~~~~~~~~~~~~~~~~~
 
 By default, if the trigger and criteria match, fedbadges will award badges
-to all the users returned by the message's ``usernames`` property.
-This *usually* corresponds with "what users are responsible" for this message.
+to the user returned by the message's ``agent_name`` property.
+This *usually* corresponds with "which user is responsible" for this message.
 That is *usually* what we want to award badges for.
 
 There are some instances for which that is not what we want.
 
-Take the `org.fedoraproject.prod.fas.group.member.sponsor
-<https://fedora-messaging.readthedocs.io/en/stable/user-guide/schemas.html#fas>`_
-message for example.  When user A sponsors user B to a group, both
-usernames are returned by the message's ``usernames`` property with no
-further distinction as to which was adding and which was added.
+Take the `org.fedoraproject.prod.bodhi.update.comment
+<https://fedora-messaging.readthedocs.io/en/stable/user-guide/schemas.html#bodhi>`_
+message for example.  When user A comments on user B's update, user A is returned
+by the message's ``agent_name`` property.
 
-Imagine we have a "Group Sponsor" badge that's awarded to group admins who
-sponsor users to groups.  We don't want to inadvertently award that badge
-to the persons who *were sponsored*, only to those who *sponsored them*.
+Imagine we have a "Received Comments" badge that's awarded to packagers that
+received comments on their updates.  We don't want to inadvertently award that
+badge to the person who *commented*, only to the one who *created the update*.
 
 To allow for this scenario, badges may optionally define a ``recipient``
 in dotted notation that tells fedbadges where to find the username of the
@@ -265,12 +264,14 @@ recipient in the originating message.  For instance, the following would
 handle the fas case we described above::
 
     trigger:
-      topic: org.fedoraproject.prod.fas.group.member.sponsor
+      topic: org.fedoraproject.prod.bodhi.update.comment
     criteria:
       filter:
         topics:
         - "%(topic)s"
+        users:
+        - "%(msg.update.user.name)s"
       operation: count
       condition:
         greater than or equal to: 1
-    recipient: "%(msg.agent_name)s"
+    recipient: "%(msg.update.user.name)s"

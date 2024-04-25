@@ -24,6 +24,7 @@ log = logging.getLogger(__name__)
 def construct_substitutions(message: fm_api.Message):
     subs = dict_to_subs({"msg": message.body})
     subs["topic"] = message.topic
+    subs["usernames"] = message.usernames
     return subs
 
 
@@ -61,6 +62,7 @@ def format_args(obj, subs):
     elif isinstance(obj, (int, float)):
         pass
     else:
+        print(obj, subs)
         obj = obj % subs
 
     return obj

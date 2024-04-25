@@ -77,7 +77,8 @@ class FedoraBadgesConsumer:
 
     def _initialize_cache(self):
         cache_args = self.config.get("cache")
-        cache.configure(**cache_args)
+        if not cache.is_configured:
+            cache.configure(**cache_args)
 
     def _initialize_tahrir_connection(self):
         database_uri = self.config.get("database_uri")

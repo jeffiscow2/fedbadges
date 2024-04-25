@@ -28,6 +28,7 @@ def fm_config(tmp_path):
         distgit_hostname="src.example.com",
         id_provider_hostname="id.example.com",
         fasjson_base_url="https://fasjson.example.com",
+        cache=dict(backend="dogpile.cache.null"),
         badge_issuer=dict(
             issuer_id="test-issuer",
             issuer_name="Testing",

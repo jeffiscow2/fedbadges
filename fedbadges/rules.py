@@ -190,7 +190,7 @@ class BadgeRule:
         # Before proceeding further, let's see who would get this badge if
         # our more heavyweight checks matched up.  If the user specifies a
         # recipient_key, we can use that to extract the potential awardee.  If
-        # that is not specified, we just use `msg.usernames`.
+        # that is not specified, we just use `msg.agent_name`.
         if self.recipient_key:
             subs = construct_substitutions(msg)
             obj = format_args(self.recipient_key, subs)
@@ -238,8 +238,10 @@ class BadgeRule:
                 awardees = frozenset([krb2fas(uri) for uri in awardees])
 
             awardees = frozenset([e for e in awardees if e is not None])
+        elif msg.agent_name is not None:
+            awardees = frozenset([msg.agent_name])
         else:
-            awardees = frozenset(msg.usernames)
+            awardees = frozenset()
 
         awardees = awardees.difference(self.banned_usernames)
 
