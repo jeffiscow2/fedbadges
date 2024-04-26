@@ -3,11 +3,11 @@ import logging
 from contextlib import suppress
 from functools import partial
 
-import datanommer.models
+from datanommer.models import Message, session
 from dogpile.cache import make_region
 from dogpile.cache.api import NO_VALUE
 from dogpile.cache.util import kwarg_function_key_generator
-from fedora_messaging.message import Message
+from fedora_messaging.message import Message as FMMessage
 
 
 log = logging.getLogger(__name__)
@@ -24,7 +24,7 @@ def _query_has_single_arg(search_kwargs, required_kwargs):
 
 
 class CachedDatanommerMessage:
-    def __init__(self, message: Message):
+    def __init__(self, message: FMMessage):
         self.msg_id = message.id
         self.topic = message.topic
         self.timestamp = (datetime.datetime.now(tz=datetime.timezone.utc),)
@@ -57,7 +57,7 @@ class CachedValue:
     def compute(self, **kwargs):
         raise NotImplementedError
 
-    def on_message(self, message: Message):
+    def on_message(self, message: FMMessage):
         raise NotImplementedError
 
     def _update_if_exists(self, cache_kwargs: dict, update_fn):
@@ -65,7 +65,8 @@ class CachedValue:
         current_value = cache.get(key)
         if current_value == NO_VALUE:
             return  # Don't update the value if no one has ever requested it
-        cache.set(key, update_fn(current_value))
+        new_value = update_fn(current_value)
+        cache.set(key, new_value)
 
     def is_applicable(self, *args, **kwargs):
         raise NotImplementedError
@@ -73,14 +74,49 @@ class CachedValue:
 
 class CachedDatanommerValue(CachedValue):
 
-    def cache_kwargs(self):
-        raise NotImplementedError
+    # SINGLE_CACHE_KEY = {}
+
+    # def cache_kwargs(self, search_kwargs: dict):
+    #     result = {}
+    #     for key, value in search_kwargs.items():
+    #         if key in self.SINGLE_CACHE_KEY:
+    #             key = self.SINGLE_CACHE_KEY[key]
+    #             value = value[0]
+    #         result[key] = value
+    #     return result
 
     def get(self, search_kwargs):
-        return super().get(**self.cache_kwargs(search_kwargs))
+        # total, messages_or_query = super().get(**self.cache_kwargs(search_kwargs))
+        total, messages_or_query = super().get(**search_kwargs)
+
+        if isinstance(messages_or_query, list):
+
+            def _convert_to_message(cached_value):
+                if isinstance(cached_value, CachedDatanommerMessage):
+                    return cached_value
+                elif isinstance(cached_value, tuple):
+                    return session.get(Message, cached_value)
+
+            messages_or_query = [
+                _convert_to_message(cached_value) for cached_value in messages_or_query
+            ]
+        log.debug("Got %s results from cache", total)
+        return total, messages_or_query
+
+    def compute(self, **kwargs):
+        return self._run_query(**kwargs)
 
     def _run_query(self, **grep_kwargs):
-        total, _pages, messages_or_query = datanommer.models.Message.grep(**grep_kwargs)
+        log.debug("Running DN query: %r", grep_kwargs)
+        total, _pages, messages_or_query = Message.grep(**grep_kwargs)
+        if isinstance(messages_or_query, list):
+            # Only store the id to stay pickleizable
+            messages_or_query = [(msg.id, msg.timestamp) for msg in messages_or_query]
+        else:
+            # We can't pickle a Select object. It's fine, we won't use it anyway, we're just
+            # interested in the total
+            messages_or_query = None
+        log.debug("DN query done, %s results on %s pages", total, _pages)
         return total, messages_or_query
 
     def _append_message(self, message, result):
@@ -89,35 +125,28 @@ class CachedDatanommerValue(CachedValue):
         return total + 1, messages
 
 
-class TopicQuery(CachedDatanommerValue):
+class SingleArgsDatanommerValue(CachedDatanommerValue):
 
-    def cache_kwargs(self, search_kwargs):
-        return dict(topic=search_kwargs["topics"][0])
-
-    def compute(self, *, topic):
-        return self._run_query(topics=[topic])
+    SINGLE_ARG_KWARGS = []
 
     def is_applicable(self, search_kwargs, badge_dict):
         """Return whether we can use this cached value for this datanommer query"""
-        return _query_has_single_arg(search_kwargs, ["topics"])
+        return _query_has_single_arg(search_kwargs, self.SINGLE_ARG_KWARGS)
 
-    def on_message(self, message: Message):
+
+class TopicQuery(SingleArgsDatanommerValue):
+
+    SINGLE_ARG_KWARGS = ["topics"]
+
+    def on_message(self, message: FMMessage):
         self._update_if_exists({"topic": message.topic}, partial(self._append_message, message))
 
 
-class TopicAndUserQuery(CachedDatanommerValue):
+class TopicAndUserQuery(SingleArgsDatanommerValue):
 
-    def cache_kwargs(self, search_kwargs):
-        return dict(topic=search_kwargs["topics"][0], username=search_kwargs["users"][0])
+    SINGLE_ARG_KWARGS = ["topics", "users"]
 
-    def compute(self, *, topic, username):
-        return self._run_query(topics=[topic], users=[username])
-
-    def is_applicable(self, search_kwargs, badge_dict):
-        """Return whether we can use this cached value for this datanommer query"""
-        return _query_has_single_arg(search_kwargs, ["topics", "users"])
-
-    def on_message(self, message: Message):
+    def on_message(self, message: FMMessage):
         _append_message = partial(self._append_message, message)
         for username in message.usernames:
             self._update_if_exists({"topic": message.topic, "username": username}, _append_message)
@@ -125,8 +154,9 @@ class TopicAndUserQuery(CachedDatanommerValue):
 
 class TopicCount(TopicAndUserQuery):
 
-    def compute(self, *, topic, username):
-        return self._run_query(topics=[topic], users=[username], defer=True)
+    def compute(self, **kwargs):
+        kwargs["defer"] = True
+        return super().compute(**kwargs)
 
     def is_applicable(self, search_kwargs, badge_dict):
         """Return whether we can use this cached value for this datanommer query"""
@@ -134,7 +164,7 @@ class TopicCount(TopicAndUserQuery):
             return False
         return badge_dict.get("operation") == "count"
 
-    def on_message(self, message: Message):
+    def on_message(self, message: FMMessage):
         for username in message.usernames:
             self._update_if_exists(
                 {"topic": message.topic, "username": username}, lambda v: (v[0] + 1, None)
@@ -146,7 +176,7 @@ class TopicCount(TopicAndUserQuery):
 #     STATE = None
 #
 #     def compute(self, *, topic, username):
-#         _total, _pages, messages = datanommer.models.Message.grep(
+#         _total, _pages, messages = Message.grep(
 #             topics=[topic], users=[username]
 #         )
 #         return sum(1 for msg in messages if msg.msg["new"] == self.STATE)
@@ -165,7 +195,7 @@ class TopicCount(TopicAndUserQuery):
 #             return False
 #         return True
 #
-#     def on_message(self, message: Message):
+#     def on_message(self, message: FMMessage):
 #         if message.body["new"] != self.STATE:
 #             return
 #         for username in message.usernames:
@@ -191,7 +221,7 @@ DATANOMMER_CACHED_VALUES = (TopicCount, TopicAndUserQuery, TopicQuery)
 CACHED_VALUES = DATANOMMER_CACHED_VALUES
 
 
-def on_message(msg: Message):
+def on_message(msg: FMMessage):
     for CachedValue in CACHED_VALUES:
         cached_value = CachedValue()
         cached_value.on_message(msg)

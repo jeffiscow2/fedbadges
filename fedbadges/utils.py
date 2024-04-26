@@ -62,7 +62,6 @@ def format_args(obj, subs):
     elif isinstance(obj, (int, float)):
         pass
     else:
-        print(obj, subs)
         obj = obj % subs
 
     return obj
