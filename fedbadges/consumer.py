@@ -19,7 +19,7 @@ from fedora_messaging.api import Message
 from fedora_messaging.config import conf as fm_config
 
 from .aio import Periodic
-from .cached import cache
+from .cached import configure as configure_cache
 from .cached import on_message as update_cached_values
 from .rulesrepo import RulesRepo
 from .utils import datanommer_has_message, notification_callback
@@ -77,8 +77,7 @@ class FedoraBadgesConsumer:
 
     def _initialize_cache(self):
         cache_args = self.config.get("cache")
-        if not cache.is_configured:
-            cache.configure(**cache_args)
+        configure_cache(**cache_args)
 
     def _initialize_tahrir_connection(self):
         database_uri = self.config.get("database_uri")

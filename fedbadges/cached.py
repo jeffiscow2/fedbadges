@@ -3,15 +3,31 @@ import logging
 from contextlib import suppress
 from functools import partial
 
+import pymemcache
 from datanommer.models import Message, session
 from dogpile.cache import make_region
 from dogpile.cache.api import NO_VALUE
+from dogpile.cache.proxy import ProxyBackend
 from dogpile.cache.util import kwarg_function_key_generator
 from fedora_messaging.message import Message as FMMessage
 
 
 log = logging.getLogger(__name__)
 cache = make_region()
+
+
+def configure(**kwargs):
+    if not cache.is_configured:
+        kwargs["wrap"] = [ErrorLoggingProxy]
+        cache.configure(**kwargs)
+
+
+class ErrorLoggingProxy(ProxyBackend):
+    def set(self, key, value):
+        try:
+            self.proxied.set(key, value)
+        except pymemcache.exceptions.MemcacheServerError:
+            log.exception("Could not set the value in the cache (len=%s)", len(value))
 
 
 def _query_has_single_arg(search_kwargs, required_kwargs):
