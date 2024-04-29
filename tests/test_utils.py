@@ -3,14 +3,14 @@ from fedora_messaging.message import Message
 from fedbadges.utils import (
     construct_substitutions,
     format_args,
-    single_argument_lambda_factory,
+    single_argument_lambda,
 )
 
 
 def test_lambda_factory():
     expression = "value + 2"
     target = 4
-    actual = single_argument_lambda_factory(expression, 2)
+    actual = single_argument_lambda(expression, 2)
     assert actual == target
 
 

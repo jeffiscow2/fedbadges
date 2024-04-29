@@ -27,6 +27,7 @@ from fedbadges.utils import (
     graceful,
     nick2fas,
     recursive_lambda_factory,
+    single_argument_lambda,
     single_argument_lambda_factory,
     # These make networked API calls
     user_exists_in_fas,
@@ -352,11 +353,11 @@ class Trigger(AbstractTopLevelComparator):
         if self.children:
             return operator_lookup[self.attribute](child.matches(msg) for child in self.children)
         elif self.attribute == "lambda":
-            return single_argument_lambda_factory(
+            func = single_argument_lambda_factory(
                 expression=self.expected_value,
-                argument={"msg": msg.body, "message": msg},
                 name="msg",
             )
+            return func({"msg": msg.body, "message": msg})
         elif self.attribute == "category":
             return msg.topic.split(".")[3] == self.expected_value
         elif self.attribute == "topic":
@@ -419,7 +420,7 @@ class DatanommerCriteria(AbstractSpecializedComparator):
         "is equal to": lambda t, v: v == t,
         "is not": lambda t, v: v != t,
         "is not equal to": lambda t, v: v != t,
-        "lambda": single_argument_lambda_factory,
+        "lambda": single_argument_lambda,
     }
 
     def __init__(self, *args, **kwargs):
@@ -526,9 +527,8 @@ class DatanommerCriteria(AbstractSpecializedComparator):
             result = total
         elif isinstance(self._d["operation"], dict):
             expression = self._format_lambda_operation(msg)
-            result = single_argument_lambda_factory(
-                expression=expression, argument=query, name="query"
-            )
+            func = single_argument_lambda_factory(expression=expression, name="query")
+            result = func(query)
         else:
             operation = getattr(query, self._d["operation"])
             result = operation()

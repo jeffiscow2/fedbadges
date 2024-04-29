@@ -27,7 +27,10 @@ class ErrorLoggingProxy(ProxyBackend):
         try:
             self.proxied.set(key, value)
         except pymemcache.exceptions.MemcacheServerError:
-            log.exception("Could not set the value in the cache (len=%s)", len(value))
+            length = len(value)
+            if length == 2:
+                length = len(value[1])
+            log.exception("Could not set the value in the cache (len=%s)", length)
 
 
 def _query_has_single_arg(search_kwargs, required_kwargs):
