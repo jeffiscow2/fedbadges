@@ -16,6 +16,8 @@ import fasjson_client
 import sqlalchemy as sa
 from fedora_messaging import api as fm_api
 from fedora_messaging import exceptions as fm_exceptions
+from fedora_messaging.config import conf as fm_config
+from twisted.internet import reactor, threads
 
 
 log = logging.getLogger(__name__)
@@ -133,7 +135,13 @@ def _publish_backoff_hdlr(details):
     on_backoff=_publish_backoff_hdlr,
 )
 def _publish(message):
-    fm_api.publish(message)
+    # Use fm_api.twisted_publish() when available
+    threads.blockingCallFromThread(
+        reactor,
+        fm_api._twisted_service._service.factory.publish,
+        message=message,
+        exchange=fm_config["publish_exchange"],
+    )
 
 
 def notification_callback(message):

@@ -71,6 +71,7 @@ class CachedValue:
 
     def get(self, **kwargs):
         key = self._get_key(**kwargs)
+        log.debug("Querying cache with %r", kwargs)
         return cache.get_or_create(key, creator=self.compute, creator_args=((), kwargs))
 
     def compute(self, **kwargs):
@@ -93,19 +94,7 @@ class CachedValue:
 
 class CachedDatanommerValue(CachedValue):
 
-    # SINGLE_CACHE_KEY = {}
-
-    # def cache_kwargs(self, search_kwargs: dict):
-    #     result = {}
-    #     for key, value in search_kwargs.items():
-    #         if key in self.SINGLE_CACHE_KEY:
-    #             key = self.SINGLE_CACHE_KEY[key]
-    #             value = value[0]
-    #         result[key] = value
-    #     return result
-
     def get(self, search_kwargs):
-        # total, messages_or_query = super().get(**self.cache_kwargs(search_kwargs))
         total, messages_or_query = super().get(**search_kwargs)
 
         if isinstance(messages_or_query, list):
@@ -116,6 +105,7 @@ class CachedDatanommerValue(CachedValue):
                 elif isinstance(cached_value, tuple):
                     return session.get(Message, cached_value)
 
+            log.debug("Converting %s messages from the cache", total)
             messages_or_query = [
                 _convert_to_message(cached_value) for cached_value in messages_or_query
             ]
