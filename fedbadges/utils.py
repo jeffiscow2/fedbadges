@@ -192,7 +192,7 @@ def _fasjson_backoff_hdlr(details):
 def nick2fas(nick, fasjson):
     """Return the user in FAS."""
     try:
-        return fasjson.get_user(username=nick)
+        return fasjson.get_user(username=nick).result["username"]
     except fasjson_client.errors.APIError as e:
         if e.code == 404:
             return None
