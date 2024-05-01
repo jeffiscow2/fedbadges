@@ -4,7 +4,7 @@ from contextlib import suppress
 from functools import partial
 
 import pymemcache
-from datanommer.models import Message, session
+from datanommer.models import Message
 from dogpile.cache import make_region
 from dogpile.cache.api import NO_VALUE
 from dogpile.cache.proxy import ProxyBackend
@@ -94,38 +94,17 @@ class CachedValue:
 
 class CachedDatanommerValue(CachedValue):
 
-    def get(self, search_kwargs):
-        total, messages_or_query = super().get(**search_kwargs)
-
-        if isinstance(messages_or_query, list):
-
-            def _convert_to_message(cached_value):
-                if isinstance(cached_value, CachedDatanommerMessage):
-                    return cached_value
-                elif isinstance(cached_value, tuple):
-                    return session.get(Message, cached_value)
-
-            log.debug("Converting %s messages from the cache", total)
-            messages_or_query = [
-                _convert_to_message(cached_value) for cached_value in messages_or_query
-            ]
-        log.debug("Got %s results from cache", total)
-        return total, messages_or_query
-
     def compute(self, **kwargs):
         return self._run_query(**kwargs)
 
     def _run_query(self, **grep_kwargs):
         log.debug("Running DN query: %r", grep_kwargs)
         total, _pages, messages_or_query = Message.grep(**grep_kwargs)
-        if isinstance(messages_or_query, list):
-            # Only store the id to stay pickleizable
-            messages_or_query = [(msg.id, msg.timestamp) for msg in messages_or_query]
-        else:
+        if not isinstance(messages_or_query, list):
             # We can't pickle a Select object. It's fine, we won't use it anyway, we're just
             # interested in the total
             messages_or_query = None
-        log.debug("DN query done, %s results on %s pages", total, _pages)
+        log.debug("DN query done, %s results on %s page(s)", total, _pages)
         return total, messages_or_query
 
     def _append_message(self, message, result):

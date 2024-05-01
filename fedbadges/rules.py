@@ -502,7 +502,8 @@ class DatanommerCriteria(AbstractSpecializedComparator):
             # Don't update the cache here, there are ~100 rules for a single incoming message and
             # each could be increasing the value while there's only one actual message.
             # cached_value.on_message(msg)
-            total, messages = cached_value.get(search_kwargs)
+            total, messages = cached_value.get(**search_kwargs)
+            log.debug("Got %s results from cache", total)
             query = CachedDatanommerQuery(messages)
             return total, query
 
