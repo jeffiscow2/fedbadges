@@ -94,7 +94,7 @@ def recursive_lambda_factory(obj, arg, name="value"):
         for key in obj:
             if key == "lambda":
                 # If so, *replace* the parent dict with the result of the expr
-                obj = single_argument_lambda_factory(obj[key], arg, name)
+                obj = single_argument_lambda(obj[key], arg, name)
                 break
             else:
                 obj[key] = recursive_lambda_factory(obj[key], arg, name)

@@ -4,6 +4,7 @@ from contextlib import suppress
 from functools import partial
 
 import pymemcache
+import sqlalchemy
 from datanommer.models import Message
 from dogpile.cache import make_region
 from dogpile.cache.api import NO_VALUE
@@ -60,6 +61,9 @@ class CachedDatanommerQuery:
     def all(self):
         return self._result
 
+    def count(self):
+        return self._result.count() if hasattr(self._result, "count") else len(self._result or [])
+
 
 class CachedValue:
 
@@ -100,7 +104,7 @@ class CachedDatanommerValue(CachedValue):
     def _run_query(self, **grep_kwargs):
         log.debug("Running DN query: %r", grep_kwargs)
         total, _pages, messages_or_query = Message.grep(**grep_kwargs)
-        if not isinstance(messages_or_query, list):
+        if isinstance(messages_or_query, sqlalchemy.Select):
             # We can't pickle a Select object. It's fine, we won't use it anyway, we're just
             # interested in the total
             messages_or_query = None
@@ -140,7 +144,7 @@ class TopicAndUserQuery(SingleArgsDatanommerValue):
             self._update_if_exists({"topic": message.topic, "username": username}, _append_message)
 
 
-class TopicCount(TopicAndUserQuery):
+class TopicAndUserCount(TopicAndUserQuery):
 
     def compute(self, **kwargs):
         kwargs["defer"] = True
@@ -157,6 +161,13 @@ class TopicCount(TopicAndUserQuery):
             self._update_if_exists(
                 {"topic": message.topic, "username": username}, lambda v: (v[0] + 1, None)
             )
+
+
+class TopicCount(TopicAndUserCount):
+    SINGLE_ARG_KWARGS = ["topics"]
+
+    def on_message(self, message: FMMessage):
+        self._update_if_exists({"topic": message.topic}, partial(self._append_message, message))
 
 
 # class CachedBuildState(TopicAndUserQuery):
@@ -204,7 +215,7 @@ class TopicCount(TopicAndUserQuery):
 
 
 # Most specific to less specific
-DATANOMMER_CACHED_VALUES = (TopicCount, TopicAndUserQuery, TopicQuery)
+DATANOMMER_CACHED_VALUES = (TopicAndUserCount, TopicCount, TopicAndUserQuery, TopicQuery)
 # All the cached values, datanommer and others (ok there aren't any others yet)
 CACHED_VALUES = DATANOMMER_CACHED_VALUES
 

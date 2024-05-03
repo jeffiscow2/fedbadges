@@ -12,6 +12,7 @@ class MockQuery:
 
 
 def test_complicated_recipient_real(
+    cache_configured,
     rules,
     tahrir_client,
 ):

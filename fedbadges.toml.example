@@ -50,6 +50,7 @@ fasjson_base_url = "https://fasjson.fedoraproject.org"
 # Cache configuation
 [consumer_config.cache]
 backend = "dogpile.cache.memory"
+expiration_time = 3600
 
 # This is a set of data that tells our consumer what Open Badges Issuer
 # should be kept as the issuer of all the badges we create.

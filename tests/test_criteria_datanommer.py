@@ -16,7 +16,7 @@ class MockQuery:
         return self.returned_count
 
 
-def test_malformed_criteria():
+def test_malformed_criteria(cache_configured):
     """Test that an error is raised when nonsense is provided."""
     with pytest.raises(KeyError):
         fedbadges.rules.Criteria(
@@ -26,7 +26,7 @@ def test_malformed_criteria():
         )
 
 
-def test_underspecified_criteria():
+def test_underspecified_criteria(cache_configured):
     """Test that an error is raised when condition is missing."""
     with pytest.raises(ValueError):
         fedbadges.rules.Criteria(
@@ -39,7 +39,7 @@ def test_underspecified_criteria():
         )
 
 
-def test_malformed_filter():
+def test_malformed_filter(cache_configured):
     """Test that an error is raised for malformed filters"""
     with pytest.raises(KeyError):
         fedbadges.rules.Criteria(
@@ -63,7 +63,7 @@ def test_malformed_filter():
         (501, True),
     ],
 )
-def test_basic_datanommer(returned_count, expectation):
+def test_basic_datanommer(cache_configured, returned_count, expectation):
     criteria = fedbadges.rules.Criteria(
         dict(
             datanommer={
@@ -98,7 +98,7 @@ def test_basic_datanommer(returned_count, expectation):
         (501, True),
     ],
 )
-def test_datanommer_with_lambda_condition(returned_count, expectation):
+def test_datanommer_with_lambda_condition(cache_configured, returned_count, expectation):
     criteria = fedbadges.rules.Criteria(
         dict(
             datanommer={
@@ -129,7 +129,7 @@ def test_datanommer_with_lambda_condition(returned_count, expectation):
         (6, False),
     ],
 )
-def test_datanommer_formatted_operations(returned_count, expectation):
+def test_datanommer_formatted_operations(cache_configured, returned_count, expectation):
     criteria = fedbadges.rules.Criteria(
         dict(
             datanommer={
@@ -165,7 +165,7 @@ def test_datanommer_formatted_operations(returned_count, expectation):
         (501, True),
     ],
 )
-def test_datanommer_with_lambda_operation(returned_count, expectation):
+def test_datanommer_with_lambda_operation(cache_configured, returned_count, expectation):
     criteria = fedbadges.rules.Criteria(
         dict(
             datanommer={
@@ -190,7 +190,7 @@ def test_datanommer_with_lambda_operation(returned_count, expectation):
         assert result == expectation
 
 
-def test_datanommer_with_lambda_filter():
+def test_datanommer_with_lambda_filter(cache_configured):
     criteria = fedbadges.rules.Criteria(
         dict(
             datanommer={
@@ -218,7 +218,7 @@ def test_datanommer_with_lambda_filter():
         grep.assert_called_once_with(users=["lmacken"], defer=True)
 
 
-def test_datanommer_with_dotted_filter():
+def test_datanommer_with_dotted_filter(cache_configured):
     criteria = fedbadges.rules.Criteria(
         dict(
             datanommer={

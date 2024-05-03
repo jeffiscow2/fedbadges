@@ -6,6 +6,7 @@ import pytest
 from fedora_messaging.config import conf
 from tahrir_api import dbapi
 
+from fedbadges.cached import configure as configure_cache
 from fedbadges.consumer import FedoraBadgesConsumer
 from fedbadges.rulesrepo import RulesRepo
 
@@ -28,7 +29,7 @@ def fm_config(tmp_path):
         distgit_hostname="src.example.com",
         id_provider_hostname="id.example.com",
         fasjson_base_url="https://fasjson.example.com",
-        cache=dict(backend="dogpile.cache.null"),
+        cache=dict(backend="dogpile.cache.null", expiration_time=0),
         badge_issuer=dict(
             issuer_id="test-issuer",
             issuer_name="Testing",
@@ -88,3 +89,9 @@ def tahrir_client(fm_config, badges_db, notification_callback_mock):
 def rules(fm_config, fasjson_client, tahrir_client):
     repo = RulesRepo(conf["consumer_config"], 1, fasjson_client)
     return repo.load_all(tahrir_client=tahrir_client)
+
+
+@pytest.fixture()
+def cache_configured(fm_config):
+    cache_args = conf["consumer_config"]["cache"]
+    configure_cache(**cache_args)
