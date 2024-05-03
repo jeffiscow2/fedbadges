@@ -287,9 +287,9 @@ def test_github_awardee(fasjson_client, tahrir_client):
 
     with patch("datanommer.models.Message.grep") as f:
         f.return_value = 1, 1, MockQuery()
-        fasjson_client.search_users.return_value = [{"username": "dummy"}]
+        fasjson_client.search.return_value = [{"username": "dummy"}]
         assert rule.matches(msg, tahrir_client) == set(["dummy"])
-        fasjson_client.search_users.assert_called_once_with(github_username__exact="dummygh")
+        fasjson_client.search.assert_called_once_with(github_username__exact="dummygh")
 
 
 def test_krb_awardee(fasjson_client, tahrir_client):

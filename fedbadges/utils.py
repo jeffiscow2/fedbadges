@@ -211,7 +211,7 @@ def email2fas(email, fasjson):
         on_backoff=_fasjson_backoff_hdlr,
     )
     def _search_user(email):
-        return fasjson.search_users(email=email)
+        return fasjson.search(email=email).result
 
     result = _search_user(email)
 

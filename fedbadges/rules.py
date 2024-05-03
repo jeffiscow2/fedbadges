@@ -52,7 +52,7 @@ def github2fas(uri, config, fasjson):
         log.warning("Can't extract the username from %r", uri)
         return None
     github_username = m.group(1)
-    result = fasjson.search_users(github_username__exact=github_username)
+    result = fasjson.search(github_username__exact=github_username).result
     if len(result) != 1:
         return None
     return result[0]["username"]
