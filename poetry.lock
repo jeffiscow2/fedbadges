@@ -1429,6 +1429,20 @@ files = [
 ]
 
 [[package]]
+name = "maubot-fedora-messages"
+version = "0.1.0"
+description = "A schema package for messages sent by Maubot Fedora"
+optional = true
+python-versions = ">=3.8,<4.0"
+files = [
+    {file = "maubot_fedora_messages-0.1.0-py3-none-any.whl", hash = "sha256:90c1a9a0801be647f3b4321cbb541626dd2152b8c396b9128fa69a60eea66165"},
+    {file = "maubot_fedora_messages-0.1.0.tar.gz", hash = "sha256:0c9d48a5a5ce6b982ad3c8e6d9ea4848a35546a4f705023d8669543f1f894313"},
+]
+
+[package.dependencies]
+fedora-messaging = ">=3.3.0,<4.0.0"
+
+[[package]]
 name = "mdapi-messages"
 version = "1.0.0"
 description = "A schema package for messages sent by mdapi"
@@ -3232,9 +3246,9 @@ testing = ["coverage (>=5.0.3)", "zope.event", "zope.testing"]
 [extras]
 memcache = ["pymemcache"]
 redis = ["redis"]
-schemas = ["anitya-schema", "bodhi-messages", "bugzilla2fedmsg-schema", "ci-messages", "copr-messaging", "discourse2fedmsg-messages", "fedocal-messages", "fedora-elections-messages", "fedora-messaging-git-hook-messages", "fedora-messaging-the-new-hotness-schema", "fedora-planet-messages", "fedorainfra-ansible-messages", "fmn-messages", "kerneltest-messages", "koji-fedoramessaging-messages", "koschei-messages", "mdapi-messages", "mediawiki-messages", "meetbot-messages", "noggin-messages", "nuancier-messages", "pagure-messages", "tahrir-messages"]
+schemas = ["anitya-schema", "bodhi-messages", "bugzilla2fedmsg-schema", "ci-messages", "copr-messaging", "discourse2fedmsg-messages", "fedocal-messages", "fedora-elections-messages", "fedora-messaging-git-hook-messages", "fedora-messaging-the-new-hotness-schema", "fedora-planet-messages", "fedorainfra-ansible-messages", "fmn-messages", "kerneltest-messages", "koji-fedoramessaging-messages", "koschei-messages", "maubot-fedora-messages", "mdapi-messages", "mediawiki-messages", "meetbot-messages", "noggin-messages", "nuancier-messages", "pagure-messages", "tahrir-messages"]
 
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "d3557e0d3ee2183db3edeeed373100439cdd7e49168df72205b503d65592ddca"
+content-hash = "ab0c58b273f297c040189f9f6fd1501d6e9172c1b89ba7896db71e4755c1a845"
