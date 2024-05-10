@@ -144,6 +144,7 @@ class BadgeRule:
             "packit",
             "koschei",
             "distrobuildsync-eln/jenkins-continuous-infra.apps.ci.centos.org",
+            "osbuild-automation-bot",
         ]
     )
 
