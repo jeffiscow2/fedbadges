@@ -162,7 +162,17 @@ class FedoraBadgesConsumer:
         self.badge_rules = self._rules_repo.load_all(tahrir)
 
     def _wait_for_datanommer(self, message: Message):
-        yesterday = datetime.datetime.now() - datetime.timedelta(days=1)
+        now = datetime.datetime.now(tz=datetime.timezone.utc)
+        a_minute_ago = now - datetime.timedelta(minutes=1)
+        try:
+            sent_at = message._headers["sent-at"]
+            sent_at = datetime.datetime.fromisoformat(sent_at)
+        except (KeyError, TypeError, ValueError):
+            sent_at = None
+        if sent_at is not None and sent_at < a_minute_ago:
+            return  # It's kinda old, datanommer surely has it already
+
+        yesterday = now - datetime.timedelta(days=1)
         for _i in range(MAX_WAIT_DATANOMMER * 2):
             if datanommer_has_message(message.id, since=yesterday):
                 break

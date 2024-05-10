@@ -225,5 +225,6 @@ def datanommer_has_message(msg_id: str, since: datetime.datetime | None = None):
         datanommer.models.Message.msg_id == msg_id
     )
     if since is not None:
+        since = since.replace(tzinfo=None)
         query = query.where(datanommer.models.Message.timestamp >= since)
     return datanommer.models.session.scalar(query) > 0
