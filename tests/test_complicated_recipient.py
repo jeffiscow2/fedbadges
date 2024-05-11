@@ -31,9 +31,9 @@ def test_complicated_recipient_real(
     )
     with (
         patch("fedbadges.rules.user_exists_in_fas") as g,
-        patch("datanommer.models.Message.grep") as grep,
+        patch("fedbadges.cached.CachedDatanommerValue._year_split_query") as run_query,
     ):
-        grep.return_value = float("inf"), 1, MockQuery()
+        run_query.return_value = float("inf"), MockQuery()
         g.return_value = True
         assert rule.matches(msg, tahrir_client) == {"zodbot", "threebean"}
 

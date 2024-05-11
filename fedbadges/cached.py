@@ -2,6 +2,7 @@ import datetime
 import logging
 from contextlib import suppress
 from functools import partial
+from itertools import chain
 
 import pymemcache
 import sqlalchemy
@@ -15,6 +16,8 @@ from fedora_messaging.message import Message as FMMessage
 
 log = logging.getLogger(__name__)
 cache = make_region()
+
+VERY_LONG_EXPIRATION_TIME = 86400 * 365  # a year
 
 
 def configure(**kwargs):
@@ -75,7 +78,7 @@ class CachedValue:
 
     def get(self, **kwargs):
         key = self._get_key(**kwargs)
-        log.debug("Querying cache with %r", kwargs)
+        log.debug("Querying cache with %r (%s)", kwargs, key)
         return cache.get_or_create(key, creator=self.compute, creator_args=((), kwargs))
 
     def compute(self, **kwargs):
@@ -99,7 +102,10 @@ class CachedValue:
 class CachedDatanommerValue(CachedValue):
 
     def compute(self, **kwargs):
-        return self._run_query(**kwargs)
+        if kwargs.get("start") is not None or kwargs.get("end") is not None:
+            return self._run_query(**kwargs)
+        else:
+            return self._year_split_query(**kwargs)
 
     def _run_query(self, **grep_kwargs):
         log.debug("Running DN query: %r", grep_kwargs)
@@ -115,6 +121,65 @@ class CachedDatanommerValue(CachedValue):
         total, messages = result
         messages.append(CachedDatanommerMessage(message))
         return total + 1, messages
+
+    def _year_split_query(self, **grep_kwargs):
+        first_timestamp = self._first_message_timestamp(**grep_kwargs)
+        if first_timestamp is None:
+            return 0, []
+        else:
+            today = datetime.date.today()
+            base_key = self._get_key(**grep_kwargs)
+            args = grep_kwargs.copy()
+            args["end"] = first_timestamp
+            results = []
+            for year in range(first_timestamp.year, today.year + 1):
+                key = f"{base_key}|{year}"
+                args["start"] = args["end"]
+                args["end"] = datetime.datetime(
+                    year=year + 1, month=1, day=1, hour=0, minute=0, second=0
+                )
+                expiration_time = VERY_LONG_EXPIRATION_TIME if year != today.year else None
+                total, messages_or_query = cache.get_or_create(
+                    key,
+                    creator=self._run_query,
+                    creator_args=((), args),
+                    expiration_time=expiration_time,
+                )
+                results.append((total, messages_or_query))
+            total = sum(r[0] for r in results)
+            all_results = [r[1] for r in results]
+            if None in all_results:
+                messages_or_query = None
+            else:
+                messages_or_query = chain.from_iterable(all_results)
+            return total, messages_or_query
+
+    def _first_message_timestamp(self, **grep_kwargs):
+        key = self._get_key(**grep_kwargs)
+        key = f"{key}|first_timestamp"
+
+        def _get_first(**kwargs):
+            # first_message = Message.get_first(**kwargs)
+            kwargs = kwargs.copy()
+            kwargs["rows_per_page"] = 1
+            kwargs["defer"] = False
+            log.debug("Getting first DN message for: %r", kwargs)
+            _total, _pages, first_message_as_list = Message.grep(**kwargs)
+            try:
+                first_message = first_message_as_list[0]
+            except IndexError:
+                first_message = None
+            # end of implementation of get_first() with grep()
+            return first_message.timestamp if first_message is not None else None
+
+        return cache.get_or_create(
+            key,
+            creator=_get_first,
+            creator_args=((), grep_kwargs),
+            # Don't cache if there wasn't any previous message
+            should_cache_fn=lambda r: r is not None,
+            expiration_time=VERY_LONG_EXPIRATION_TIME,
+        )
 
 
 class SingleArgsDatanommerValue(CachedDatanommerValue):
@@ -156,10 +221,13 @@ class TopicAndUserCount(TopicAndUserQuery):
             return False
         return badge_dict.get("operation") == "count"
 
+    def _append_message(self, result):
+        total, _messages = result
+
     def on_message(self, message: FMMessage):
         for username in message.usernames:
             self._update_if_exists(
-                {"topic": message.topic, "username": username}, lambda v: (v[0] + 1, None)
+                {"topic": message.topic, "username": username}, self._append_message
             )
 
 
@@ -167,7 +235,7 @@ class TopicCount(TopicAndUserCount):
     SINGLE_ARG_KWARGS = ["topics"]
 
     def on_message(self, message: FMMessage):
-        self._update_if_exists({"topic": message.topic}, partial(self._append_message, message))
+        self._update_if_exists({"topic": message.topic}, self._append_message)
 
 
 # class CachedBuildState(TopicAndUserQuery):
@@ -221,6 +289,6 @@ CACHED_VALUES = DATANOMMER_CACHED_VALUES
 
 
 def on_message(msg: FMMessage):
-    for CachedValue in CACHED_VALUES:
-        cached_value = CachedValue()
+    for CachedValueClass in CACHED_VALUES:
+        cached_value = CachedValueClass()
         cached_value.on_message(msg)

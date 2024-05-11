@@ -80,11 +80,11 @@ def test_basic_datanommer(cache_configured, returned_count, expectation):
     message = Message(
         topic="org.fedoraproject.dev.something.sometopic",
     )
-    with patch("datanommer.models.Message.grep") as grep:
-        grep.return_value = returned_count, 1, MockQuery(returned_count)
+    with patch("fedbadges.cached.CachedDatanommerValue._year_split_query") as run_query:
+        run_query.return_value = returned_count, MockQuery(returned_count)
         result = criteria.matches(message)
         assert result == expectation
-        grep.assert_called_once_with(
+        run_query.assert_called_once_with(
             topics=["org.fedoraproject.dev.something.sometopic"],
             defer=True,
         )
@@ -115,8 +115,8 @@ def test_datanommer_with_lambda_condition(cache_configured, returned_count, expe
     message = Message(
         topic="org.fedoraproject.dev.something.sometopic",
     )
-    with patch("datanommer.models.Message.grep") as f:
-        f.return_value = returned_count, 1, MockQuery(returned_count)
+    with patch("fedbadges.cached.CachedDatanommerValue._year_split_query") as run_query:
+        run_query.return_value = returned_count, MockQuery(returned_count)
         result = criteria.matches(message)
         assert result == expectation
 
@@ -151,8 +151,8 @@ def test_datanommer_formatted_operations(cache_configured, returned_count, expec
             some_value=5,
         ),
     )
-    with patch("datanommer.models.Message.grep") as grep:
-        grep.return_value = returned_count, 1, MockQuery(returned_count)
+    with patch("fedbadges.cached.CachedDatanommerValue._year_split_query") as run_query:
+        run_query.return_value = returned_count, MockQuery(returned_count)
         result = criteria.matches(message)
         assert result == expectation
 
@@ -184,8 +184,8 @@ def test_datanommer_with_lambda_operation(cache_configured, returned_count, expe
     message = Message(
         topic="org.fedoraproject.dev.something.sometopic",
     )
-    with patch("datanommer.models.Message.grep") as grep:
-        grep.return_value = returned_count, 1, MockQuery(returned_count)
+    with patch("fedbadges.cached.CachedDatanommerValue._year_split_query") as run_query:
+        run_query.return_value = returned_count, MockQuery(returned_count)
         result = criteria.matches(message)
         assert result == expectation
 
