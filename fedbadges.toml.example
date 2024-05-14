@@ -47,6 +47,9 @@ distgit_hostname = "src.fedoraproject.org"
 id_provider_hostname = "id.fedoraproject.org"
 fasjson_base_url = "https://fasjson.fedoraproject.org"
 
+# Check for new rules every these many minutes
+rules_reload_interval = 15
+
 # Cache configuation
 [consumer_config.cache]
 backend = "dogpile.cache.memory"

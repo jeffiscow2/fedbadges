@@ -28,7 +28,7 @@ from .utils import datanommer_has_message, notification_callback
 log = logging.getLogger(__name__)
 
 DEFAULT_DELAY_LIMIT = 100
-RULES_RELOAD_INTERVAL = 15 * 60  # 15 minutes
+DEFAULT_RULES_RELOAD_INTERVAL = 15  # in minutes
 MAX_WAIT_DATANOMMER = 5  # seconds
 
 
@@ -70,8 +70,11 @@ class FedoraBadgesConsumer:
         self._rules_repo = RulesRepo(self.config, self.issuer_id, self.fasjson)
         self._rules_repo.setup()
 
+        rules_reload_inteval = self.config.get(
+            "rules_reload_interval", DEFAULT_RULES_RELOAD_INTERVAL
+        )
         self._refresh_badges_task = Periodic(
-            partial(self.loop.run_in_executor, None, self._reload_rules), RULES_RELOAD_INTERVAL
+            partial(self.loop.run_in_executor, None, self._reload_rules), rules_reload_inteval * 60
         )
         await self._refresh_badges_task.start(run_now=True)
 
