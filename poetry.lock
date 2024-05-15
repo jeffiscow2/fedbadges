@@ -692,20 +692,25 @@ name = "datanommer-models"
 version = "1.2.0"
 description = "SQLAlchemy models for datanommer"
 optional = false
-python-versions = "<4.0,>=3.10"
-files = [
-    {file = "datanommer_models-1.2.0-py3-none-any.whl", hash = "sha256:022172252dd23e2a54c65ffc5d8ef5724cbc63626fbed9fcb931ec4271f22712"},
-    {file = "datanommer_models-1.2.0.tar.gz", hash = "sha256:7b163601dd58d1c32d662d9cd5479d4a6910a772fcd6daf23b730fa4798d2106"},
-]
+python-versions = "^3.10"
+files = []
+develop = false
 
 [package.dependencies]
-alembic = ">=1.6.5,<2.0.0"
+alembic = "^1.6.5"
 fedora-messaging = ">=2.1.0"
-psycopg2 = ">=2.9.1,<3.0.0"
-SQLAlchemy = ">=1.3.24,<3.0.0"
+psycopg2 = "^2.9.1"
+SQLAlchemy = "^1.3.24 || ^2.0.0"
 
 [package.extras]
-schemas = ["anitya-schema", "bodhi-messages", "bugzilla2fedmsg-schema", "ci-messages", "copr-messaging", "discourse2fedmsg-messages", "fedocal-messages", "fedora-elections-messages", "fedora-messaging-git-hook-messages", "fedora-messaging-the-new-hotness-schema", "fedora-planet-messages", "fedorainfra-ansible-messages", "fmn-messages", "kerneltest-messages (>=1.0.0,<2.0.0)", "koji-fedoramessaging-messages (>=1.2.2,<2.0.0)", "koschei-messages", "mdapi-messages", "mediawiki-messages", "meetbot-messages", "noggin-messages", "nuancier-messages", "pagure-messages", "tahrir-messages"]
+schemas = ["anitya-schema", "bodhi-messages", "bugzilla2fedmsg-schema", "ci-messages", "copr-messaging", "discourse2fedmsg-messages", "fedocal-messages", "fedora-elections-messages", "fedora-messaging-git-hook-messages", "fedora-messaging-the-new-hotness-schema", "fedora-planet-messages", "fedorainfra-ansible-messages", "fmn-messages", "kerneltest-messages (>=1.0.0,<2.0.0)", "koji-fedoramessaging-messages (>=1.2.2,<2.0.0)", "koschei-messages", "maubot-fedora-messages", "mdapi-messages", "mediawiki-messages", "meetbot-messages", "noggin-messages", "nuancier-messages", "pagure-messages", "tahrir-messages"]
+
+[package.source]
+type = "git"
+url = "https://github.com/fedora-infra/datanommer.git"
+reference = "develop"
+resolved_reference = "99fb739117e4ffc52483d105d09758963b54a76c"
+subdirectory = "datanommer.models"
 
 [[package]]
 name = "decorator"
@@ -3251,4 +3256,4 @@ schemas = ["anitya-schema", "bodhi-messages", "bugzilla2fedmsg-schema", "ci-mess
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "ab0c58b273f297c040189f9f6fd1501d6e9172c1b89ba7896db71e4755c1a845"
+content-hash = "b6c52bede99e15a475d3b28c4c79eaa2b492a9e7213b1ff86b2918272d787aad"

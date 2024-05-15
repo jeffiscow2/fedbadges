@@ -431,7 +431,7 @@ class DatanommerCriteria(AbstractSpecializedComparator):
             raise ValueError("No more than one condition allowed.  Use one of %r" % conditions)
 
         # Determine what arguments datanommer.models.Message.grep accepts
-        argspec = inspect.getfullargspec(datanommer.models.Message.grep)
+        argspec = inspect.getfullargspec(datanommer.models.Message.make_query)
         irrelevant = frozenset(["defer"])
         grep_arguments = frozenset(argspec.args[1:]).difference(irrelevant)
 
