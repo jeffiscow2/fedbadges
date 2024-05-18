@@ -83,7 +83,7 @@ class RulesRepo:
         return badges
 
     def _load_badge_from_yaml(self, fname):
-        log.debug("Loading %r" % fname)
+        log.debug(f"Loading {fname!r}")
         try:
             with open(fname) as f:
                 return yaml.safe_load(f.read())

@@ -317,7 +317,7 @@ class AbstractTopLevelComparator(AbstractComparator):
 
         if len(self._d) > 1:
             raise ValueError(
-                "No more than one trigger allowed. Use an operator, one of %r" % operators
+                f"No more than one trigger allowed. Use an operator, one of {operators!r}"
             )
         self.attribute = next(iter(self._d))
         self.expected_value = self._d[self.attribute]
@@ -331,7 +331,7 @@ class AbstractTopLevelComparator(AbstractComparator):
         # Then, treat everything as if it accepts an arbitrary # of args.
         if self.attribute in operators:
             if not isinstance(self.expected_value, list):
-                raise TypeError("Operators only accept lists, not %r" % type(self.expected_value))
+                raise TypeError(f"Operators only accept lists, not {type(self.expected_value)}")
             self.children = [cls(child, self) for child in self.expected_value]
 
 
@@ -428,7 +428,7 @@ class DatanommerCriteria(AbstractSpecializedComparator):
         super().__init__(*args, **kwargs)
         if len(self._d["condition"]) > 1:
             conditions = list(self.condition_callbacks.keys())
-            raise ValueError("No more than one condition allowed.  Use one of %r" % conditions)
+            raise ValueError(f"No more than one condition allowed. Use one of {conditions}")
 
         # Determine what arguments datanommer.models.Message.grep accepts
         argspec = inspect.getfullargspec(datanommer.models.Message.make_query)
