@@ -1,5 +1,36 @@
 # Changelog
 
+## Version 2.1.0
+
+- Fix the libravatar manual awarder ([86c402f](https://github.com/fedora-infra/tahrir-api/commit/86c402f>))
+- Renew the diagrams ([286507e](https://github.com/fedora-infra/tahrir-api/commit/286507e>))
+- Guard against libravatar failures ([8202917](https://github.com/fedora-infra/tahrir-api/commit/8202917>))
+- Fix the github action to trigger on tags ([4cf8894](https://github.com/fedora-infra/tahrir-api/commit/4cf8894>))
+- Guard against FASJSON returning 404 ([fad6a70](https://github.com/fedora-infra/tahrir-api/commit/fad6a70>))
+- Add pagure to the list of banned users ([32ecfbd](https://github.com/fedora-infra/tahrir-api/commit/32ecfbd>))
+- Add one more banned user ([55ad1d4](https://github.com/fedora-infra/tahrir-api/commit/55ad1d4>))
+- Make the FASJSON call earlier, it's not that expensive anymore ([6ab36d2](https://github.com/fedora-infra/tahrir-api/commit/6ab36d2>))
+- Don't wait for datanommer for more than 5 seconds ([77b176d](https://github.com/fedora-infra/tahrir-api/commit/77b176d>))
+- Add a way for rules to run the datanommer query ([137ff81](https://github.com/fedora-infra/tahrir-api/commit/137ff81>))
+- Optimize the query to check if the message is in datanommer ([d79ca05](https://github.com/fedora-infra/tahrir-api/commit/d79ca05>))
+- Add packit in the banned users ([f2c2f18](https://github.com/fedora-infra/tahrir-api/commit/f2c2f18>))
+- Add koschei to the banned users ([1328636](https://github.com/fedora-infra/tahrir-api/commit/1328636>))
+- Add a caching system for some datanommer values ([18b39cd](https://github.com/fedora-infra/tahrir-api/commit/18b39cd>), [3f42962](https://github.com/fedora-infra/tahrir-api/commit/3f42962>), [35316d5](https://github.com/fedora-infra/tahrir-api/commit/35316d5>), [a8becdd](https://github.com/fedora-infra/tahrir-api/commit/a8becdd>))
+- Add Redis support for caching ([a572468](https://github.com/fedora-infra/tahrir-api/commit/a572468>))
+- Fix the tahrir DB session in the consumer ([8d4908e](https://github.com/fedora-infra/tahrir-api/commit/8d4908e>))
+- Retry FASJSON connections ([c9cd62e](https://github.com/fedora-infra/tahrir-api/commit/c9cd62e>))
+- By default, award badges to the message agent, not all users affected by it ([25f5c28](https://github.com/fedora-infra/tahrir-api/commit/25f5c28>))
+- Minor refactor ([5cc404c](https://github.com/fedora-infra/tahrir-api/commit/5cc404c>))
+- Temporarily use blockingCallFromThread to publish Fedora Messages ([75a9b73](https://github.com/fedora-infra/tahrir-api/commit/75a9b73>))
+- Ignore osbuild-automation-bot ([8665481](https://github.com/fedora-infra/tahrir-api/commit/8665481>))
+- Don't check datanommer if the message is old enough ([18b6025](https://github.com/fedora-infra/tahrir-api/commit/18b6025>))
+- Add a schema package ([ef365b0](https://github.com/fedora-infra/tahrir-api/commit/ef365b0>))
+- Run year-specific datanommer queries and cache them accordingly ([19a65a7](https://github.com/fedora-infra/tahrir-api/commit/19a65a7>))
+- Make the rules reload interval configurable ([f06aee8](https://github.com/fedora-infra/tahrir-api/commit/f06aee8>))
+- Convert Changlog to Markdown and use it in the Github action ([2b16bb8](https://github.com/fedora-infra/tahrir-api/commit/2b16bb8>))
+- Update dependencies
+
+
 ## Version 2.0.0
 
 - Rebase on Fedora Messaging
