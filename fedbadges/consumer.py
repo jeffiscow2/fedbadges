@@ -169,8 +169,12 @@ class FedoraBadgesConsumer:
         a_minute_ago = now - datetime.timedelta(minutes=1)
         try:
             sent_at = message._headers["sent-at"]
+            if sent_at.endswith("Z"):
+                # Python 3.10 compatibility
+                sent_at = sent_at[:-1] + "+00:00"
             sent_at = datetime.datetime.fromisoformat(sent_at)
-        except (KeyError, TypeError, ValueError):
+        except (KeyError, TypeError, ValueError) as e:
+            log.debug("Could not read the sent-at value: %s: %s", e.__class__.__name__, e)
             sent_at = None
         if sent_at is not None and sent_at < a_minute_ago:
             return  # It's kinda old, datanommer surely has it already
@@ -179,4 +183,5 @@ class FedoraBadgesConsumer:
         for _i in range(MAX_WAIT_DATANOMMER * 2):
             if datanommer_has_message(message.id, since=yesterday):
                 break
+            log.debug("Waiting for the message to land in datanommer")
             time.sleep(0.5)
