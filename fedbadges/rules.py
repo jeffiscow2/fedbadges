@@ -82,7 +82,7 @@ def validate_possible(possible, fields):
 
 
 def validate_badge(required, possible, badge_dict):
-    fields = frozenset(list(badge_dict.keys()))
+    fields = set(list(badge_dict.keys()))
     validate_possible(possible, fields)
     if required and not required.issubset(fields):
         raise ValueError(
@@ -432,8 +432,8 @@ class DatanommerCriteria(AbstractSpecializedComparator):
 
         # Determine what arguments datanommer.models.Message.grep accepts
         argspec = inspect.getfullargspec(datanommer.models.Message.make_query)
-        irrelevant = frozenset(["defer"])
-        grep_arguments = frozenset(argspec.args[1:]).difference(irrelevant)
+        grep_arguments = set(argspec.args[1:])
+        grep_arguments.update({"rows_per_page", "page", "order"})
 
         # Validate the filter
         validate_possible(grep_arguments, self._d["filter"])
