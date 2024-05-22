@@ -689,28 +689,23 @@ test-randomorder = ["pytest-randomly"]
 
 [[package]]
 name = "datanommer-models"
-version = "1.2.0"
+version = "1.3.0"
 description = "SQLAlchemy models for datanommer"
 optional = false
-python-versions = "^3.10"
-files = []
-develop = false
+python-versions = "<4.0,>=3.10"
+files = [
+    {file = "datanommer_models-1.3.0-py3-none-any.whl", hash = "sha256:3b95afc5a04b2ad4e36548a72629251d6f9b9c1c7e7ade31697de438d5740df9"},
+    {file = "datanommer_models-1.3.0.tar.gz", hash = "sha256:a6a0704016c1c823edf4f04df3dc5f93ebe06d033e29b9476ab46644b254d172"},
+]
 
 [package.dependencies]
-alembic = "^1.6.5"
+alembic = ">=1.6.5,<2.0.0"
 fedora-messaging = ">=2.1.0"
-psycopg2 = "^2.9.1"
-SQLAlchemy = "^1.3.24 || ^2.0.0"
+psycopg2 = ">=2.9.1,<3.0.0"
+SQLAlchemy = ">=1.3.24,<3.0.0"
 
 [package.extras]
 schemas = ["anitya-schema", "bodhi-messages", "bugzilla2fedmsg-schema", "ci-messages", "copr-messaging", "discourse2fedmsg-messages", "fedocal-messages", "fedora-elections-messages", "fedora-messaging-git-hook-messages", "fedora-messaging-the-new-hotness-schema", "fedora-planet-messages", "fedorainfra-ansible-messages", "fmn-messages", "kerneltest-messages (>=1.0.0,<2.0.0)", "koji-fedoramessaging-messages (>=1.2.2,<2.0.0)", "koschei-messages", "maubot-fedora-messages", "mdapi-messages", "mediawiki-messages", "meetbot-messages", "noggin-messages", "nuancier-messages", "pagure-messages", "tahrir-messages"]
-
-[package.source]
-type = "git"
-url = "https://github.com/fedora-infra/datanommer.git"
-reference = "develop"
-resolved_reference = "610067fbf01484ad30ba4f462d451879d8fc70b7"
-subdirectory = "datanommer.models"
 
 [[package]]
 name = "decorator"
@@ -3252,4 +3247,4 @@ schemas = ["anitya-schema", "bodhi-messages", "bugzilla2fedmsg-schema", "ci-mess
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "b6c52bede99e15a475d3b28c4c79eaa2b492a9e7213b1ff86b2918272d787aad"
+content-hash = "6ed6ae7f3a2292bd76a8a1de005df607f7c2b59b4761a6eb3646fcd93348c7e3"
