@@ -144,8 +144,8 @@ class FedoraBadgesConsumer:
 
         tahrir = self._get_tahrir_client()
         for badge_rule in self.badge_rules:
-            try:
-                for recipient in badge_rule.matches(message, tahrir):
+            for recipient in badge_rule.matches(message, tahrir):
+                try:
                     log.debug(
                         "Rule %s matched for %s (message %s on %s)",
                         badge_rule.badge_id,
@@ -154,8 +154,9 @@ class FedoraBadgesConsumer:
                         message.topic,
                     )
                     self.award_badge(recipient, badge_rule, link)
-            except Exception:
-                log.exception("Rule: %s, message: %s", repr(badge_rule), repr(message))
+                except Exception:
+                    log.exception("Rule: %s, message: %s", repr(badge_rule), repr(message))
+                    self.tahrir.session.rollback()
 
         log.debug("Done with %s, %s", message.topic, message.id)
 
