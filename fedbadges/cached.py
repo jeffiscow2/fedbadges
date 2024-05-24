@@ -157,6 +157,11 @@ class CachedDatanommerValue(CachedValue):
     def _first_message_timestamp(self, **grep_kwargs):
         key = self._get_key(**grep_kwargs)
         key = f"{key}|first_timestamp"
+        get_first_kwargs = grep_kwargs.copy()
+        # remove grep() args that are not allowed by get_first()
+        for kwarg in ("defer", "rows_per_page", "page"):
+            with suppress(KeyError):
+                del get_first_kwargs[kwarg]
 
         def _get_first_timestamp(**kwargs):
             log.debug("Getting first DN message for: %r", kwargs)
@@ -166,7 +171,7 @@ class CachedDatanommerValue(CachedValue):
         return cache.get_or_create(
             key,
             creator=_get_first_timestamp,
-            creator_args=((), grep_kwargs),
+            creator_args=((), get_first_kwargs),
             # Don't cache if there wasn't any previous message
             should_cache_fn=lambda r: r is not None,
             expiration_time=VERY_LONG_EXPIRATION_TIME,
