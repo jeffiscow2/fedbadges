@@ -2904,13 +2904,13 @@ typing-extensions = "*"
 
 [[package]]
 name = "tahrir-api"
-version = "1.1.1"
+version = "1.1.2"
 description = "An API for interacting with the Tahrir database"
 optional = false
 python-versions = "<4.0.0,>=3.9.0"
 files = [
-    {file = "tahrir_api-1.1.1-py3-none-any.whl", hash = "sha256:556272783adb36e0c96ed566175ba72460bfbd660e8412536d934c73b6550540"},
-    {file = "tahrir_api-1.1.1.tar.gz", hash = "sha256:034e21bccccfdc2c38c3d293b4ce0dc6e604eee4a09b37ea474959c4487aca22"},
+    {file = "tahrir_api-1.1.2-py3-none-any.whl", hash = "sha256:a8e0a2a68e9fd43f42096b90bcbd28422a921810ebc22c4869f0004519fe4673"},
+    {file = "tahrir_api-1.1.2.tar.gz", hash = "sha256:4964a713767cf0a348d344d581506b2cce97b912c4ff1ee9dad69ca7c6a17c31"},
 ]
 
 [package.dependencies]
