@@ -17,6 +17,7 @@ import fasjson_client
 import tahrir_api.dbapi
 from fedora_messaging.api import Message
 from fedora_messaging.config import conf as fm_config
+from sqlalchemy.exc import SQLAlchemyError
 
 from .aio import Periodic
 from .cached import configure as configure_cache
@@ -115,18 +116,23 @@ class FedoraBadgesConsumer:
         self.tahrir.session.commit()
 
     def __call__(self, message: Message):
+        try:
+            self._process_message(message)
+        except SQLAlchemyError:
+            log.exception("Could not process message %s on %s", message.id, message.topic)
+            # If we don't rollback, following queryies will fail.
+            self.tahrir.session.rollback()
+
+    def _process_message(self, message: Message):
         # First thing, we receive the message, but we put ourselves to sleep to
         # wait for a moment.  The reason for this is that, when things are
         # 'calm' on the bus, we receive messages "too fast".  A message that
         # arrives to the badge awarder triggers (usually) a check against
         # datanommer to count messages.  But if we try to count them before
         # this message arrives at datanommer, we'll get skewed results!  Race
-        # condition.  We go to sleep to allow ample time for datanommer to
-        # consume this one before we go and start doing checks on it.
-        # TODO: Option 1, easy: make a SQL query in datanommer instead of waiting
-        # TODO: Option 2, a bit harder: check if the current message is in the
-        #       matched messages when querying datanommer, and if it's not add 1
-        #       to the count.
+        # condition.
+        # If the message is recent, we ask datanommer if it already has it.
+        # If it's older, we assume datanommer already has it and spare it a query.
 
         self._wait_for_datanommer(message)
 
