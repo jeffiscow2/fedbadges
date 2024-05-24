@@ -21,7 +21,7 @@ def test_complicated_recipient_real(
         topic="org.fedoraproject.prod.meetbot.meeting.complete",
         body={
             "meeting_topic": "testing",
-            "attendees": {"zodbot": 2, "threebean": 2},
+            "attendees": {"fasuser": 2, "threebean": 2},
             "chairs": {},
             "topic": "",
             "url": "fedora-meeting.2013-06-24-19.52",
@@ -35,7 +35,7 @@ def test_complicated_recipient_real(
     ):
         run_query.return_value = float("inf"), MockQuery()
         g.return_value = True
-        assert rule.matches(msg, tahrir_client) == {"zodbot", "threebean"}
+        assert rule.matches(msg, tahrir_client) == {"fasuser", "threebean"}
 
 
 def test_complicated_recipient_pagure(
