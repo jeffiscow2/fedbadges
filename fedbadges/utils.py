@@ -158,7 +158,7 @@ def notification_callback(message):
 
 def user_exists_in_fas(fasjson, user):
     """Return true if the user exists in FAS."""
-    return nick2fas(user, fasjson) is not None
+    return get_fas_user(user, fasjson) is not None
 
 
 def get_pagure_authors(authors):
@@ -189,14 +189,22 @@ def _fasjson_backoff_hdlr(details):
     max_tries=3,
     on_backoff=_fasjson_backoff_hdlr,
 )
-def nick2fas(nick, fasjson):
+def get_fas_user(username, fasjson):
     """Return the user in FAS."""
     try:
-        return fasjson.get_user(username=nick).result["username"]
+        return fasjson.get_user(username=username).result
     except fasjson_client.errors.APIError as e:
         if e.code == 404:
             return None
         raise
+
+
+def nick2fas(nick, fasjson):
+    """Return the user in FAS."""
+    fas_user = get_fas_user(nick, fasjson)
+    if fas_user is None:
+        return None
+    return fas_user["username"]
 
 
 def email2fas(email, fasjson):

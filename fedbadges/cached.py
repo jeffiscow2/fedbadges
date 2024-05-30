@@ -13,6 +13,8 @@ from dogpile.cache.proxy import ProxyBackend
 from dogpile.cache.util import kwarg_function_key_generator
 from fedora_messaging.message import Message as FMMessage
 
+from .utils import get_fas_user
+
 
 log = logging.getLogger(__name__)
 cache = make_region()
@@ -50,7 +52,7 @@ class CachedDatanommerMessage:
     def __init__(self, message: FMMessage):
         self.msg_id = message.id
         self.topic = message.topic
-        self.timestamp = (datetime.datetime.now(tz=datetime.timezone.utc),)
+        self.timestamp = datetime.datetime.now(tz=datetime.timezone.utc)
         self.msg = message.body
         self.headers = message._properties.headers
         self.users = message.usernames
@@ -70,8 +72,9 @@ class CachedDatanommerQuery:
 
 class CachedValue:
 
-    def __init__(self):
+    def __init__(self, fasjson=None):
         self._key_generator = kwarg_function_key_generator(self.__class__.__name__, self.compute)
+        self._fasjson = fasjson
 
     def _get_key(self, **kwargs):
         return self._key_generator(**kwargs).replace(" ", "|")
@@ -157,13 +160,41 @@ class CachedDatanommerValue(CachedValue):
     def _first_message_timestamp(self, **grep_kwargs):
         key = self._get_key(**grep_kwargs)
         key = f"{key}|first_timestamp"
+        now = datetime.datetime.now(tz=datetime.timezone.utc)
         get_first_kwargs = grep_kwargs.copy()
         # remove grep() args that are not allowed by get_first()
         for kwarg in ("defer", "rows_per_page", "page"):
             with suppress(KeyError):
                 del get_first_kwargs[kwarg]
 
+        def _get_user_creation_time(username):
+            user = cache.get_or_create(
+                f"fas_user|{username}",
+                get_fas_user,
+                # short expiration time in case the user changes something in their account
+                expiration_time=300,
+                # Don't cache on 404
+                should_cache_fn=lambda result: result is not None,
+                creator_args=((username, self._fasjson), {}),
+            )
+            if user is None:
+                return None
+            return datetime.datetime.fromisoformat(user["creation"])
+
         def _get_first_timestamp(**kwargs):
+            if "users" in kwargs and "start" not in kwargs:
+                # Optimization: don't search before the user was created
+                kwargs["start"] = None
+                for username in kwargs["users"]:
+                    user_creation_time = _get_user_creation_time(username)
+                    if user_creation_time is not None:
+                        # start looking the day before, to avoid messing up with timezones
+                        start = user_creation_time - datetime.timedelta(days=1)
+                        if kwargs["start"] is None or start > kwargs["start"]:
+                            kwargs["start"] = start
+                if kwargs["start"] is not None and "end" not in kwargs:
+                    kwargs["end"] = now
+
             log.debug("Getting first DN message for: %r", kwargs)
             first_message = Message.get_first(**kwargs)
             return first_message.timestamp if first_message is not None else None

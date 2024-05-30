@@ -310,6 +310,12 @@ class AbstractComparator(metaclass=abc.ABCMeta):
     def matches(self, msg):
         pass
 
+    def get_top_parent(self):
+        parent = self.parent
+        while hasattr(parent, "parent") and parent.parent is not None:
+            parent = parent.parent
+        return parent
+
 
 class AbstractTopLevelComparator(AbstractComparator):
     def __init__(self, *args, **kwargs):
@@ -384,7 +390,7 @@ class Criteria(AbstractTopLevelComparator):
 
     def _specialize(self):
         if self.attribute == "datanommer":
-            self.specialization = DatanommerCriteria(self.expected_value)
+            self.specialization = DatanommerCriteria(self.expected_value, self)
         # TODO -- expand this with other "backends" as necessary
         # elif self.attribute == 'fas'
         else:
@@ -449,6 +455,8 @@ class DatanommerCriteria(AbstractSpecializedComparator):
 
         # Construct a condition callable for later
         self.condition = functools.partial(self.condition_callbacks[condition_key], condition_val)
+        top_parent = self.get_top_parent()
+        self.fasjson = top_parent.fasjson
 
     def _construct_query(self, msg):
         """Construct a datanommer query for this message.
@@ -487,7 +495,7 @@ class DatanommerCriteria(AbstractSpecializedComparator):
         search_kwargs = self._construct_query(msg)
         # Try cached values
         for CachedValue in DATANOMMER_CACHED_VALUES:
-            cached_value = CachedValue()
+            cached_value = CachedValue(fasjson=self.fasjson)
             if not cached_value.is_applicable(search_kwargs, self._d):
                 log.debug(
                     "%s with kwargs %r is not applicable to %r",
