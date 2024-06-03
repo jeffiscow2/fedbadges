@@ -26,7 +26,7 @@ def main(debug):
         notification_callback=fedbadges.utils.notification_callback,
     )
 
-    url = "https://admin.fedoraproject.org/mirrormanager/api/mirroradmins"
+    url = "https://mirrormanager.fedoraproject.org/api/mirroradmins"
     response = requests.get(url, timeout=HTTP_TIMEOUT)
 
     if not response.ok:
