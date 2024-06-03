@@ -160,7 +160,6 @@ class CachedDatanommerValue(CachedValue):
     def _first_message_timestamp(self, **grep_kwargs):
         key = self._get_key(**grep_kwargs)
         key = f"{key}|first_timestamp"
-        now = datetime.datetime.now(tz=datetime.timezone.utc)
         get_first_kwargs = grep_kwargs.copy()
         # remove grep() args that are not allowed by get_first()
         for kwarg in ("defer", "rows_per_page", "page"):
@@ -193,7 +192,9 @@ class CachedDatanommerValue(CachedValue):
                         if kwargs["start"] is None or start > kwargs["start"]:
                             kwargs["start"] = start
                 if kwargs["start"] is not None and "end" not in kwargs:
-                    kwargs["end"] = now
+                    # user creation time is naive, let's keep the end dt naive as well
+                    # also, the datanommer column is currently naive, so, let's be consistent
+                    kwargs["end"] = datetime.datetime.now()
 
             log.debug("Getting first DN message for: %r", kwargs)
             first_message = Message.get_first(**kwargs)
