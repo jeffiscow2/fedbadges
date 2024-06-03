@@ -135,13 +135,19 @@ def _publish_backoff_hdlr(details):
     on_backoff=_publish_backoff_hdlr,
 )
 def _publish(message):
-    # Use fm_api.twisted_publish() when available
-    threads.blockingCallFromThread(
-        reactor,
-        fm_api._twisted_service._service.factory.publish,
+    publish_args = dict(
         message=message,
         exchange=fm_config["publish_exchange"],
     )
+    if fm_api._twisted_service is None:
+        # We're not running in the consumer
+        fm_api.publish(**publish_args)
+    else:
+        # We're running in the consumer
+        # Use fm_api.twisted_publish() when available
+        threads.blockingCallFromThread(
+            reactor, fm_api._twisted_service._service.factory.publish, **publish_args
+        )
 
 
 def notification_callback(message):
