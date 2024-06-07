@@ -122,8 +122,10 @@ class FedoraBadgesConsumer:
             log.exception("Could not process message %s on %s", message.id, message.topic)
             # If we don't rollback, following queryies will fail.
             self.tahrir.session.rollback()
+            datanommer.models.session.rollback()
             # Also rollback the connection to avoid https://sqlalche.me/e/20/8s2b
             self.tahrir.session.connection().rollback()
+            datanommer.models.session.connection().rollback()
 
     def _process_message(self, message: Message):
         # First thing, we receive the message, but we put ourselves to sleep to
