@@ -7,6 +7,7 @@ import backoff
 import click
 import requests
 from fedora_messaging.config import conf as fm_config
+from requests_ratelimiter import LimiterSession
 from tahrir_api.dbapi import TahrirDatabase
 
 import fedbadges.utils
@@ -17,6 +18,7 @@ from .utils import award_badge, option_debug, setup_logging
 log = logging.getLogger(__name__)
 
 HTTP_TIMEOUT = 5
+HTTP_RATE_LIMIT = {"per_second": 1}
 
 
 def _backoff_hdlr(details):
@@ -37,11 +39,11 @@ def _giveup_hdlr(details):
     on_giveup=_giveup_hdlr,
     raise_on_giveup=False,
 )
-def query_libravatar(nickname):
+def query_libravatar(http, nickname):
     openid = f"http://{nickname}.id.fedoraproject.org/"
     hash = hashlib.sha256(openid.encode("utf-8")).hexdigest()
     url = f"https://seccdn.libravatar.org/avatar/{hash}?d=404"
-    return requests.get(url, timeout=HTTP_TIMEOUT)
+    return http.get(url, timeout=HTTP_TIMEOUT)
 
 
 @click.command()
@@ -55,6 +57,7 @@ def main(debug):
         notification_callback=fedbadges.utils.notification_callback,
     )
     badge = tahrir.get_badge(badge_id="mugshot")
+    http = LimiterSession(**HTTP_RATE_LIMIT)
 
     persons = tahrir.get_all_persons()
     already_has_it = [assertion.person for assertion in badge.assertions]
@@ -67,7 +70,7 @@ def main(debug):
             log.debug("Skipping %s", person)
             continue
 
-        response = query_libravatar(person.nickname)
+        response = query_libravatar(http, person.nickname)
         if response is None:
             # Query failed, ignore
             continue
