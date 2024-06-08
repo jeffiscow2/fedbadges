@@ -167,6 +167,8 @@ class CachedDatanommerValue(CachedValue):
                 del get_first_kwargs[kwarg]
 
         def _get_user_creation_time(username):
+            if self._fasjson is None:
+                return None
             user = cache.get_or_create(
                 f"fas_user|{username}",
                 get_fas_user,

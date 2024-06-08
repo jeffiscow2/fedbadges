@@ -456,7 +456,7 @@ class DatanommerCriteria(AbstractSpecializedComparator):
         # Construct a condition callable for later
         self.condition = functools.partial(self.condition_callbacks[condition_key], condition_val)
         top_parent = self.get_top_parent()
-        self.fasjson = top_parent.fasjson
+        self.fasjson = getattr(top_parent, "fasjson", None)
 
     def _construct_query(self, msg):
         """Construct a datanommer query for this message.
