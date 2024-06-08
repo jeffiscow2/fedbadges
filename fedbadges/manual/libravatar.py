@@ -34,15 +34,15 @@ def _giveup_hdlr(details):
 @backoff.on_exception(
     backoff.expo,
     (requests.exceptions.SSLError, requests.exceptions.ConnectionError),
-    max_tries=10,
+    max_tries=3,
     on_backoff=_backoff_hdlr,
     on_giveup=_giveup_hdlr,
     raise_on_giveup=False,
 )
-def query_libravatar(http, nickname):
-    openid = f"http://{nickname}.id.fedoraproject.org/"
-    hash = hashlib.sha256(openid.encode("utf-8")).hexdigest()
+def query_libravatar(http, email):
+    hash = hashlib.sha256(email.encode("utf-8")).hexdigest()
     url = f"https://seccdn.libravatar.org/avatar/{hash}?d=404"
+    log.debug("Looking for an avatar of %s at %s", email, url)
     return http.get(url, timeout=HTTP_TIMEOUT)
 
 
@@ -70,7 +70,7 @@ def main(debug):
             log.debug("Skipping %s", person)
             continue
 
-        response = query_libravatar(http, person.nickname)
+        response = query_libravatar(http, person.avatar)
         if response is None:
             # Query failed, ignore
             continue
