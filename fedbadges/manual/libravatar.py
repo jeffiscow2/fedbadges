@@ -33,7 +33,7 @@ def _giveup_hdlr(details):
 
 @backoff.on_exception(
     backoff.expo,
-    (requests.exceptions.SSLError, requests.exceptions.ConnectionError),
+    (requests.exceptions.ConnectionError, requests.exceptions.Timeout),
     max_tries=3,
     on_backoff=_backoff_hdlr,
     on_giveup=_giveup_hdlr,
