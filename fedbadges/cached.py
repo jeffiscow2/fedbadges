@@ -235,7 +235,12 @@ class TopicAndUserQuery(SingleArgsDatanommerValue):
 
     def on_message(self, message: FMMessage):
         _append_message = partial(self._append_message, message)
-        for username in message.usernames:
+        try:
+            usernames = message.usernames
+        except Exception:
+            log.exception("Could not extract the usernames of %s", message.id)
+            return
+        for username in usernames:
             self._update_if_exists({"topic": message.topic, "username": username}, _append_message)
 
 
@@ -255,7 +260,12 @@ class TopicAndUserCount(TopicAndUserQuery):
         total, _messages = result
 
     def on_message(self, message: FMMessage):
-        for username in message.usernames:
+        try:
+            usernames = message.usernames
+        except Exception:
+            log.exception("Could not extract the usernames of %s", message.id)
+            return
+        for username in usernames:
             self._update_if_exists(
                 {"topic": message.topic, "username": username}, self._append_message
             )
