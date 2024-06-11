@@ -709,7 +709,7 @@ schemas = ["anitya-schema", "bodhi-messages", "bugzilla2fedmsg-schema", "ci-mess
 type = "git"
 url = "https://github.com/fedora-infra/datanommer.git"
 reference = "stable"
-resolved_reference = "6920969c1f79a7be757e467c29f2c28c7b016624"
+resolved_reference = "0c8d66f220a378ab145ec482a7d952b1f72221ed"
 subdirectory = "datanommer.models"
 
 [[package]]
