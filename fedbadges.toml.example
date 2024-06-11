@@ -2,7 +2,7 @@ amqp_url = "amqp://localhost/%2Fpubsub"
 callback = "fedbadges.consumer:FedoraBadgesConsumer"
 passive_declares = false
 publish_exchange = "amq.topic"
-topic_prefix = "badges"
+topic_prefix = ""
 
 [tls]
 ca_cert = "/etc/fedora-messaging/cacert.pem"

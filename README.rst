@@ -81,9 +81,8 @@ the ``[consumer_config]`` section of the configuration file. See
 <https://github.com/fedora-infra/fedbadges/blob/develop/fedbadges.toml.example>`_
 in the git repo for an example.
 
-fedbadges also emits its own messages. Please note that the ``topic_prefix`` in
-the configuration should at least be ``badges``. In the Fedora Infrastructure,
-it will be ``org.fedoraproject.prod.badges``.
+fedbadges also emits its own messages. In the Fedora Infrastructure, the
+``topic_prefix`` will be ``org.fedoraproject.prod``.
 
 Configuration - BadgeRule specification
 ---------------------------------------
