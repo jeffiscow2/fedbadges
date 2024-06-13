@@ -144,10 +144,7 @@ def _publish(message):
         fm_api.publish(**publish_args)
     else:
         # We're running in the consumer
-        # Use fm_api.twisted_publish() when available
-        threads.blockingCallFromThread(
-            reactor, fm_api._twisted_service._service.factory.publish, **publish_args
-        )
+        threads.blockingCallFromThread(reactor, fm_api.twisted_publish, **publish_args)
 
 
 def notification_callback(message):
