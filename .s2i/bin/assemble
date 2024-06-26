@@ -13,24 +13,12 @@
 set -e
 set -x
 
-install_tool "micropipenv" "[toml]"
+# install_tool "micropipenv" "[toml]"
 
-# Poetry 1.5.0 breaks micropipenv, regenetate the log file
-# https://github.com/thoth-station/micropipenv/issues/280
-pip install "poetry<1.5.0"
-poetry lock --no-update -n
-#
-
-# Fix a couple issues with git sources in micropipenv
-pip install unidiff
-curl -O https://patch-diff.githubusercontent.com/raw/thoth-station/micropipenv/pull/296.patch
-python devel/filterdiff.py -i "*/micropipenv.py" 296.patch \
-    | patch -p1 /opt/app-root/src/.local/venvs/micropipenv/lib/python3.*/site-packages/micropipenv.py
-
-micropipenv install --deploy
+# micropipenv install --deploy
 
 # Now install the root project too, micropipenv does not do that
-pip install . --no-deps
+# pip install . --no-deps
 
 # set permissions for any installed artifacts
-fix-permissions /opt/app-root -P
+# fix-permissions /opt/app-root -P

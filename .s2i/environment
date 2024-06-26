@@ -3,4 +3,5 @@
 # SPDX-License-Identifier: MIT
 
 UPGRADE_PIP_TO_LATEST=true
+ENABLE_MICROPIPENV=true
 APP_SCRIPT=.s2i/run.sh
