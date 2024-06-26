@@ -228,7 +228,7 @@ def email2fas(email, fasjson):
 
     if not result:
         return None
-    return result[0]
+    return result[0]["username"]
 
 
 def datanommer_has_message(msg_id: str, since: datetime.datetime | None = None):
