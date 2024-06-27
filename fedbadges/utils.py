@@ -159,7 +159,7 @@ def notification_callback(message):
         log.error(f"Publishing message failed. Giving up. {traceback.format_tb(sys.exc_info()[2])}")
 
 
-def user_exists_in_fas(fasjson, user):
+def user_exists_in_fas(fasjson, user: str):
     """Return true if the user exists in FAS."""
     return get_fas_user(user, fasjson) is not None
 
@@ -192,7 +192,7 @@ def _fasjson_backoff_hdlr(details):
     max_tries=3,
     on_backoff=_fasjson_backoff_hdlr,
 )
-def get_fas_user(username, fasjson):
+def get_fas_user(username: str, fasjson):
     """Return the user in FAS."""
     try:
         return fasjson.get_user(username=username).result
