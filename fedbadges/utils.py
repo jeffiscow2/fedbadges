@@ -9,6 +9,7 @@ import re
 import sys
 import traceback
 import types
+import typing
 
 import backoff
 import datanommer.models
@@ -23,11 +24,11 @@ from twisted.internet import reactor, threads
 log = logging.getLogger(__name__)
 
 
-def construct_substitutions(message: fm_api.Message):
-    subs = dict_to_subs({"msg": message.body})
-    subs["topic"] = message.topic
-    subs["usernames"] = message.usernames
-    return subs
+# def construct_substitutions(message: fm_api.Message):
+#     subs = dict_to_subs({"msg": message.body})
+#     subs["topic"] = message.topic
+#     subs["usernames"] = message.usernames
+#     return subs
 
 
 def dict_to_subs(msg: dict):
@@ -51,28 +52,28 @@ def dict_to_subs(msg: dict):
     return subs
 
 
-def format_args(obj, subs):
-    """Recursively apply a substitutions dict to a given criteria subtree"""
+# def format_args(obj, subs):
+#     """Recursively apply a substitutions dict to a given criteria subtree"""
 
-    if isinstance(obj, dict):
-        for key in obj:
-            obj[key] = format_args(obj[key], subs)
-    elif isinstance(obj, list) or isinstance(obj, tuple):
-        return [format_args(item, subs) for item in obj]
-    elif isinstance(obj, str) and obj[2:-2] in subs:
-        obj = subs[obj[2:-2]]
-    elif isinstance(obj, (int, float)):
-        pass
-    else:
-        obj = obj % subs
+#     if isinstance(obj, dict):
+#         for key in obj:
+#             obj[key] = format_args(obj[key], subs)
+#     elif isinstance(obj, list) or isinstance(obj, tuple):
+#         return [format_args(item, subs) for item in obj]
+#     elif isinstance(obj, str) and obj[2:-2] in subs:
+#         obj = subs[obj[2:-2]]
+#     elif isinstance(obj, (int, float)):
+#         pass
+#     else:
+#         obj = obj % subs
 
-    return obj
+#     return obj
 
 
-def single_argument_lambda_factory(expression, name="value"):
-    """Compile a lambda expression with a single argument"""
+def lambda_factory(expression: str, args: tuple[str] = ("value",)):
+    """Compile a lambda expression with a list of arguments"""
 
-    code = compile(f"lambda {name}: {expression}", __file__, "eval")
+    code = compile(f"lambda {', '.join(args)}: {expression}", __file__, "eval")
     lambda_globals = {
         "__builtins__": __builtins__,
         "json": json,
@@ -81,29 +82,56 @@ def single_argument_lambda_factory(expression, name="value"):
     return types.LambdaType(code, lambda_globals)()
 
 
+def single_argument_lambda_factory(expression, name="value"):
+    """Compile a lambda expression with a single argument"""
+    return lambda_factory(expression, (name,))
+
+
 def single_argument_lambda(expression, argument, name="value"):
     """Execute a lambda expression with a single argument"""
     func = single_argument_lambda_factory(expression, name)
     return func(argument)
 
 
-def recursive_lambda_factory(obj, arg, name="value"):
-    """Given a dict, find any lambdas, compile, and execute them."""
+def list_of_lambdas(
+    expressions: list[str],
+    arguments: list[str],
+) -> typing.Callable[[typing.Any], list[typing.Any]]:
+    """Get a function that will execute each expression as a lambda
 
-    if isinstance(obj, dict):
-        for key in obj:
-            if key == "lambda":
-                # If so, *replace* the parent dict with the result of the expr
-                obj = single_argument_lambda(obj[key], arg, name)
-                break
-            else:
-                obj[key] = recursive_lambda_factory(obj[key], arg, name)
-    elif isinstance(obj, list):
-        return [recursive_lambda_factory(e, arg, name) for e in obj]
-    else:
-        pass
+    Arguments:
+        expression: a list of expressions to execute
+        arguments: the arguments that the lambdas will accept
 
-    return obj
+    Returns:
+        A function that will return the results of calling each lambda with
+            the function's arguments.
+    """
+    lambdas = [lambda_factory(expression=expression, args=arguments) for expression in expressions]
+
+    def _get_all_results(*args, **kwargs):
+        return [getter(*args, **kwargs) for getter in lambdas]
+
+    return _get_all_results
+
+
+# def recursive_lambda_factory(obj, arg, name="value"):
+#     """Given a dict, find any lambdas, compile, and execute them."""
+
+#     if isinstance(obj, dict):
+#         for key in obj:
+#             if key == "lambda":
+#                 # If so, *replace* the parent dict with the result of the expr
+#                 obj = single_argument_lambda(obj[key], arg, name)
+#                 break
+#             else:
+#                 obj[key] = recursive_lambda_factory(obj[key], arg, name)
+#     elif isinstance(obj, list):
+#         return [recursive_lambda_factory(e, arg, name) for e in obj]
+#     else:
+#         pass
+
+#     return obj
 
 
 def graceful(default_return_value):
@@ -162,24 +190,6 @@ def notification_callback(message):
 def user_exists_in_fas(fasjson, user: str):
     """Return true if the user exists in FAS."""
     return get_fas_user(user, fasjson) is not None
-
-
-def get_pagure_authors(authors):
-    """Extract the name of pagure authors from
-    a dictionary
-
-    Args:
-    authors (list): A list of dict that contains fullname and name key.
-    """
-    authors_name = []
-    for item in authors:
-        if isinstance(item, dict):
-            try:
-                if item["name"] is not None:
-                    authors_name.append(item["name"])
-            except KeyError as e:
-                raise ValueError("Multiple recipients: name not found in the message") from e
-    return authors_name
 
 
 def _fasjson_backoff_hdlr(details):

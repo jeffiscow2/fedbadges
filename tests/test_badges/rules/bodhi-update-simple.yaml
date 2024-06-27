@@ -1,10 +1,9 @@
 %YAML 1.2
 ---
-
 # This is some metadata about the badge
-name:           Like a Rock
-description:    You have pushed 500 or more bodhi updates to stable status.
-creator:        ralph
+name: Like a Rock
+description: You have pushed 500 or more bodhi updates to stable status.
+creator: ralph
 
 # This is a link to the discussion about adopting this as a for-real badge.
 discussion: http://github.com/fedora-infra/badges/pull/SOME_NUMBER
@@ -18,14 +17,17 @@ issuer_id: fedora-project
 # We'll perform our more costly check (defined below) only when
 # we receive messages that match this 'trigger'
 trigger:
-  topic:  org.fedoraproject.prod.bodhi.update.request.stable
+  topic: org.fedoraproject.prod.bodhi.update.request.stable
 
-# Once the check has been triggered, this defines what we actually check.
-criteria:
-  datanommer:
-      filter:
-        topics:
-        - "{topic}"  # The topic of the message that triggered us.
-      operation: count
-      condition:
-        greater than or equal to: 500
+# If there has been at least 500 of those messages, then award the badge.
+condition:
+  greater than or equal to: 500
+
+# If the messages matches for the user for the first time, look into previous messages to get the count
+previous:
+  filter:
+    topics:
+      - message.topic
+    agents:
+      - username
+  operation: count
