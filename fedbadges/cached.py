@@ -82,12 +82,20 @@ def get_cached_messages_count(badge_id: str, candidate: str, get_previous_fn):
     current_value = cache.get(key)
     if current_value == NO_VALUE:
         current_value = get_previous_fn(candidate)
-        cache.set(key, current_value)
+        cache.set(
+            key,
+            current_value,
+            expiration_time=VERY_LONG_EXPIRATION_TIME,
+        )
         return current_value
 
     # Add one (the current message), store it, return it
     new_value = current_value + 1
-    cache.set(key, new_value)
+    cache.set(
+        key,
+        new_value,
+        expiration_time=VERY_LONG_EXPIRATION_TIME,
+    )
     return new_value
 
 
