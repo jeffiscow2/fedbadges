@@ -345,7 +345,8 @@ class TopicCount(TopicAndUserCount):
 
 
 # Most specific to less specific
-DATANOMMER_CACHED_VALUES = (TopicAndUserCount, TopicCount, TopicAndUserQuery, TopicQuery)
+# DATANOMMER_CACHED_VALUES = (TopicAndUserCount, TopicCount, TopicAndUserQuery, TopicQuery)
+DATANOMMER_CACHED_VALUES = (TopicAndUserCount, TopicCount)
 # All the cached values, datanommer and others (ok there aren't any others yet)
 CACHED_VALUES = DATANOMMER_CACHED_VALUES
 
