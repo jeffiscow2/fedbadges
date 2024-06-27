@@ -79,23 +79,15 @@ def get_cached_messages_count(badge_id: str, candidate: str, get_previous_fn):
     # query, then this data will not be rebuildable anymore and we should store it in a database
     # table linking badges and users.
     key = f"messages_count|{badge_id}|{candidate}"
-    current_value = cache.get(key)
-    if current_value == NO_VALUE:
-        current_value = get_previous_fn(candidate)
-        cache.set(
-            key,
-            current_value,
-            expiration_time=VERY_LONG_EXPIRATION_TIME,
-        )
-        return current_value
-
-    # Add one (the current message), store it, return it
-    new_value = current_value + 1
-    cache.set(
+    current_value = cache.get_or_create(
         key,
-        new_value,
+        creator=lambda c: get_previous_fn(c) - 1,
+        creator_args=((candidate,), {}),
         expiration_time=VERY_LONG_EXPIRATION_TIME,
     )
+    # Add one (the current message), store it, return it
+    new_value = current_value + 1
+    cache.set(key, new_value)
     return new_value
 
 
