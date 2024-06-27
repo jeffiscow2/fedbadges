@@ -2,14 +2,14 @@
 - name: Install RPM packages
   dnf:
     name:
-    - gcc
-    - libffi-devel
-    - libpq-devel
-    - krb5-devel
-    - python3-cryptography
-    - python3-devel
-    - python3-pip
-    - python3-virtualenv
+      - gcc
+      - libffi-devel
+      - libpq-devel
+      - krb5-devel
+      - python3-cryptography
+      - python3-devel
+      - python3-pip
+      - python3-virtualenv
     state: present
 
 - name: Install the .bashrc
@@ -22,7 +22,7 @@
 
 # - name: Install poetry Python package
 #   command: pip install poetry
-# 
+#
 # - name: install python deps
 #   become_user: vagrant
 #   command:
@@ -42,7 +42,7 @@
     virtualenv: "{{ venv }}"
     name: cython
 
-- name: install python deps
+- name: install python deps from synced dirs
   become_user: vagrant
   pip:
     chdir: "{{ item }}"
@@ -62,30 +62,27 @@
     group: vagrant
     mode: 0640
 
-- name: Copy Tahrir development.ini config file
+- name: Copy other files
   copy:
-    src: development.ini
-    dest: /home/vagrant/development.ini
+    src: "{{ item }}"
+    dest: /home/vagrant/{{ item }}
     owner: vagrant
     group: vagrant
     mode: 0640
+  loop:
+    - "tahrir.cfg"
 
-- name: Copy Tahrir secret.ini config file
-  copy:
-    src: secret.ini
-    dest: /home/vagrant/secret.ini
-    owner: vagrant
-    group: vagrant
-    mode: 0640
-
-- name: Initialize the Tahrir DB
+- name: Create or update the database
+  command: "{{ venv }}/bin/tahrir-sync-db /home/vagrant/tahrir.cfg"
+  become: yes
   become_user: vagrant
-  command: "{{ venv }}/bin/initialize_tahrir_db /home/vagrant/development.ini"
+  args:
+    chdir: /home/vagrant/tahrir
 
 - name: Install the systemd unit files
   copy:
     src: "{{ item }}.service"
-    dest: /etc/systemd/system/tahrir.service
+    dest: /etc/systemd/system/{{ item }}.service
     mode: 0644
   loop:
     - fedbadges

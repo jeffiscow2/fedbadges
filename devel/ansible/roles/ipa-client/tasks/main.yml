@@ -20,19 +20,30 @@
 
 # Add Tinystage's root CA to certifi's bundle
 
-- name: Find where certifi's CA bundle is located
-  command:
-    cmd: "{{ python_exec }} -c 'import certifi; print(certifi.where())'"
-    chdir: "{{ python_run_dir }}"
-  register: _ca_bundle_path
-  changed_when: False
+- name: Check that the python executable exists
+  stat:
+    path: "{{ python_exec }}"
+  register: python_stat_result
 
-- name: Get the content of the CA cert
-  slurp:
-    src: /etc/ipa/ca.crt
-  register: ca_crt
+- block:
+  - name: Find where certifi's CA bundle is located
+    command:
+      cmd: "{{ python_exec }} -c 'import certifi; print(certifi.where())'"
+      chdir: "{{ python_run_dir }}"
+    register: _ca_bundle_path
+    changed_when: False
 
-- name: Put tinystage root CA in the list of CA's for certifi
-  blockinfile:
-    block: "{{ ca_crt.content | b64decode }}"
-    path: "{{ _ca_bundle_path.stdout }}"
+  - name: Get the content of the CA cert
+    slurp:
+      src: /etc/ipa/ca.crt
+    register: ca_crt
+
+  - name: Put tinystage root CA in the list of CA's for certifi
+    blockinfile:
+      block: "{{ ca_crt.content | b64decode }}"
+      path: "{{ _ca_bundle_path.stdout }}"
+  rescue:
+  - name: Print when errors
+    ansible.builtin.debug:
+      msg: "Error setting up IPA's CA in certifi, ignoring"
+  when: python_stat_result.stat.exists

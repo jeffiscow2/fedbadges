@@ -9,4 +9,5 @@
     - ipa-client
     - name: gss-proxy
       krb_service: FEDBADGES
+    - datanommer
     - dev

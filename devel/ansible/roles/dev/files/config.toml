@@ -38,10 +38,10 @@ badges_repo = "tests/test_badges"
 
 # This is a sqlalchemy URI that points to the tahrir DB.  In
 # production, this will be a postgres URI.
-database_uri = "sqlite:////home/vagrant/badges.db"
+database_uri = "sqlite:////home/vagrant/tahrir.db"
 
 # Datanommer database URI
-datanommer_db_uri = "sqlite:////home/vagrant/datanommer.db"
+datanommer_db_uri = "postgresql://datanommer:datanommer@localhost/messages"
 datagrepper_url = "https://apps.fedoraproject.org/datagrepper"
 distgit_hostname = "src.tinystage.test"
 id_provider_hostname = "id.tinystage.test"
@@ -53,7 +53,7 @@ fasjson_base_url = "https://fasjson.tinystage.test/fasjson"
 backend = "dogpile.cache.dbm"
 expiration_time = 10000
 [consumer_config.cache.arguments]
-filename = /home/vagrant/cache-fedbadges.dbm
+filename = "/home/vagrant/cache-fedbadges.dbm"
 
 # This is a set of data that tells our consumer what Open Badges Issuer
 # should be kept as the issuer of all the badges we create.

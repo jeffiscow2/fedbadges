@@ -1,0 +1,97 @@
+- name: Install RPM packages
+  dnf:
+    name:
+      - gcc
+      - libpq-devel
+      - python3-psycopg2
+      - postgresql-server
+      - timescaledb
+      - acl
+    state: present
+
+- name: Setup the postgresql DB
+  command: postgresql-setup --initdb
+  args:
+    creates: /var/lib/pgsql/data/postgresql.conf
+
+- name: Add timescaledb to postgresql config
+  lineinfile:
+    path: /var/lib/pgsql/data/postgresql.conf
+    regexp: ^shared_preload_libraries =
+    line: "shared_preload_libraries = 'timescaledb'"
+
+- name: Configure access to postgresql
+  postgresql_pg_hba:
+    dest: /var/lib/pgsql/data/pg_hba.conf
+    contype: host
+    databases: all
+    users: all
+    address: "{{item}}"
+    method: md5
+  loop:
+    - 127.0.0.1/32
+    - ::1/128
+
+- name: Start postgresql
+  service:
+    name: postgresql
+    enabled: yes
+    state: started
+
+- block:
+    - name: Create the user
+      postgresql_user:
+        name: datanommer
+        password: datanommer
+
+    - name: Create the database
+      postgresql_db:
+        name: messages
+        owner: datanommer
+
+    - name: Activate timescaledb
+      postgresql_ext:
+        name: timescaledb
+        db: messages
+  become: yes
+  become_user: postgres
+  become_method: sudo
+
+- name: Make connection easier
+  copy:
+    dest: /home/vagrant/.pgpass
+    content: "*:*:messages:datanommer:datanommer\n"
+    owner: vagrant
+    group: vagrant
+    mode: 0600
+
+- name: prepare virtualenv
+  file:
+    path: "{{ venv }}"
+    state: directory
+    owner: vagrant
+    group: vagrant
+
+- name: install python deps
+  become_user: vagrant
+  pip:
+    name: "{{ item }}"
+    virtualenv: "{{ venv }}"
+  loop:
+    - datanommer-commands
+
+- name: Copy some files
+  copy:
+    src: "{{ item }}"
+    dest: /home/vagrant/{{ item }}
+    owner: vagrant
+    group: vagrant
+    mode: 0640
+  loop:
+    - "alembic-datanommer.ini"
+    - "create-datanommer-db.py"
+
+- name: Create the database
+  command: "{{ venv }}/bin/python /home/vagrant/create-datanommer-db.py"
+  become: yes
+  become_user: vagrant

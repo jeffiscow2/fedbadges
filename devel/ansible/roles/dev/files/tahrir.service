@@ -1,12 +1,20 @@
 [Unit]
-Description=fedbadges
+Description=tahrir
 After=network-online.target
 Wants=network-online.target
+After=synced-folder@tahrir.service
+Requires=synced-folder@tahrir.service
 
 [Service]
+AmbientCapabilities = CAP_NET_BIND_SERVICE
+Environment=REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt
+Environment=FLASK_CONFIG=/home/vagrant/tahrir.cfg
+Environment=PYTHONUNBUFFERED=1
+Environment=FLASK_DEBUG=1
+Environment=FLASK_APP=/home/vagrant/tahrir/tahrir/app.py
 User=vagrant
 WorkingDirectory=/home/vagrant/tahrir
-ExecStart=/opt/venv/bin/pserve --reload /home/vagrant/development.ini
+ExecStart=poetry run flask run --reload -p 443 -h "0.0.0.0" --cert=/etc/pki/tls/certs/server.pem --key=/etc/pki/tls/private/server.key
 
 [Install]
 WantedBy=multi-user.target

@@ -2,6 +2,10 @@
 Description=fedbadges
 After=network-online.target
 Wants=network-online.target
+After=synced-folder@fedbadges.service
+After=synced-folder@fedora-badges.service
+Requires=synced-folder@fedbadges.service
+Requires=synced-folder@fedora-badges.service
 
 [Service]
 User=vagrant
