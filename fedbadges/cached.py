@@ -258,6 +258,7 @@ class TopicAndUserCount(TopicAndUserQuery):
 
     def _append_message(self, result):
         total, _messages = result
+        return total + 1, _messages
 
     def on_message(self, message: FMMessage):
         try:
