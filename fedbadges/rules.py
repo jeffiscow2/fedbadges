@@ -11,14 +11,16 @@ import functools
 import inspect
 import logging
 import re
+from copy import copy
 
 import datanommer.models
 from fedora_messaging.api import Message
 from tahrir_api.dbapi import TahrirDatabase
 
 from fedbadges.cached import (
-    CachedDatanommerQuery,
-    DATANOMMER_CACHED_VALUES,
+    cache,
+    # CachedDatanommerQuery,
+    # DATANOMMER_CACHED_VALUES,
     get_cached_messages_count,
 )
 from fedbadges.utils import (
@@ -27,6 +29,7 @@ from fedbadges.utils import (
     email2fas,
     # format_args,
     graceful,
+    json_hash,
     lambda_factory,
     list_of_lambdas,
     nick2fas,
@@ -611,8 +614,8 @@ class DatanommerCounter(AbstractChild):
         # Compile the operation if it's a lambda
         if isinstance(self._d["operation"], dict) and list(self._d["operation"]) == ["lambda"]:
             expression = self._d["operation"]["lambda"]
-            self._operation_func = single_argument_lambda_factory(
-                expression=expression, name="results"
+            self._operation_func = lambda_factory(
+                expression=expression, args = ("message", "results")
             )
         elif self._d["operation"] != "count":
             raise ValueError("Datanommer operations are either 'count' or a lambda")
@@ -633,11 +636,60 @@ class DatanommerCounter(AbstractChild):
 
     def _make_query(self, search_kwargs):
         log.debug("Making datanommer query: %r", search_kwargs)
-        search_kwargs["defer"] = True
-        total, pages, query = datanommer.models.Message.grep(**search_kwargs)
+        _search_kwargs = copy(search_kwargs)
+        _search_kwargs["defer"] = True
+        total, pages, query = datanommer.models.Message.grep(**_search_kwargs)
         return total, pages, query
 
-    def _try_cache_or_make_query(self, msg: Message, candidate: str):
+    # def _try_cache_or_make_query(self, msg: Message, candidate: str):
+    #     try:
+    #         search_kwargs = {
+    #             search_key: getter(message=msg, recipient=candidate)
+    #             for search_key, getter in self._filter_getters.items()
+    #         }
+    #     except KeyError as e:
+    #         log.debug("Could not compute the search kwargs. KeyError: %s", e)
+    #         return 0, CachedDatanommerQuery([])
+    #     # Try cached values
+    #     for CachedValue in DATANOMMER_CACHED_VALUES:
+    #         cached_value = CachedValue(fasjson=self.fasjson)
+    #         if not cached_value.is_applicable(search_kwargs, self._d):
+    #             log.debug(
+    #                 "%s with kwargs %r is not applicable to %r",
+    #                 CachedValue.__name__,
+    #                 search_kwargs,
+    #                 self._d,
+    #             )
+    #             continue
+    #         log.debug(
+    #             "Using the cached datanommer value for %s on %r",
+    #             CachedValue.__name__,
+    #             search_kwargs,
+    #         )
+    #         # Don't update the cache here, there are ~100 rules for a single incoming message and
+    #         # each could be increasing the value while there's only one actual message.
+    #         # cached_value.on_message(msg)
+    #         total, messages = cached_value.get(**search_kwargs)
+    #         log.debug("Got %s results from cache", total)
+    #         query = CachedDatanommerQuery(messages)
+    #         return total, query
+
+    #     total, pages, query = self._make_query(search_kwargs)
+    #     return total, query
+
+    def _query_with_operation(self, message: Message, search_kwargs: dict[str, int|str|list[str]]):
+        total, _pages, query = self._make_query(search_kwargs)
+        if self._d["operation"] == "count":
+            return total
+        elif isinstance(self._d["operation"], dict):
+            query_results = datanommer.models.session.scalars(query).all()
+            try:
+                return self._operation_func(message=message, results=query_results)
+            except KeyError as e:
+                log.debug("Could not run the lambda. KeyError: %s", e)
+                return 0
+
+    def count(self, msg: Message, candidate: str):
         try:
             search_kwargs = {
                 search_key: getter(message=msg, recipient=candidate)
@@ -645,42 +697,21 @@ class DatanommerCounter(AbstractChild):
             }
         except KeyError as e:
             log.debug("Could not compute the search kwargs. KeyError: %s", e)
-            return 0, CachedDatanommerQuery([])
-        # Try cached values
-        for CachedValue in DATANOMMER_CACHED_VALUES:
-            cached_value = CachedValue(fasjson=self.fasjson)
-            if not cached_value.is_applicable(search_kwargs, self._d):
-                log.debug(
-                    "%s with kwargs %r is not applicable to %r",
-                    CachedValue.__name__,
-                    search_kwargs,
-                    self._d,
-                )
-                continue
-            log.debug(
-                "Using the cached datanommer value for %s on %r",
-                CachedValue.__name__,
-                search_kwargs,
-            )
-            # Don't update the cache here, there are ~100 rules for a single incoming message and
-            # each could be increasing the value while there's only one actual message.
-            # cached_value.on_message(msg)
-            total, messages = cached_value.get(**search_kwargs)
-            log.debug("Got %s results from cache", total)
-            query = CachedDatanommerQuery(messages)
-            return total, query
-
-        total, pages, query = self._make_query(search_kwargs)
-        return total, query
-
-    def count(self, msg: Message, candidate: str):
-        total, query = self._try_cache_or_make_query(msg, candidate)
-        if self._d["operation"] == "count":
-            return total
-        elif isinstance(self._d["operation"], dict):
-            query_results = datanommer.models.session.scalars(query).all()
-            try:
-                return self._operation_func(results=query_results)
-            except KeyError as e:
-                log.debug("Could not run the lambda. KeyError: %s", e)
-                return 0
+            return 0
+        # Cache for other rules analyzing this message
+        cache_key = f"{msg.id}|{json_hash(search_kwargs)}|{json_hash(self._d['operation'])}"
+        return cache.get_or_create(
+            cache_key,
+            self._query_with_operation,
+            creator_args=((msg, search_kwargs), {})
+        )
+        # total, _pages, query = self._make_query(search_kwargs)
+        # if self._d["operation"] == "count":
+        #     return total
+        # elif isinstance(self._d["operation"], dict):
+        #     query_results = datanommer.models.session.scalars(query).all()
+        #     try:
+        #         return self._operation_func(results=query_results)
+        #     except KeyError as e:
+        #         log.debug("Could not run the lambda. KeyError: %s", e)
+        #         return 0

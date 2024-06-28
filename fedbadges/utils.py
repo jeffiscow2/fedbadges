@@ -3,6 +3,7 @@
 # These are here just so they're available in globals()
 # for compiling lambda expressions
 import datetime
+import hashlib
 import json
 import logging
 import re
@@ -132,6 +133,10 @@ def list_of_lambdas(
 #         pass
 
 #     return obj
+
+def json_hash(d):
+    str_repr = json.dumps(d, sort_keys=True)
+    return hashlib.md5(str_repr.encode("utf-8")).hexdigest()  # noqa: S324
 
 
 def graceful(default_return_value):

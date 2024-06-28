@@ -21,7 +21,8 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from .aio import Periodic
 from .cached import configure as configure_cache
-from .cached import on_message as update_cached_values
+
+# from .cached import on_message as update_cached_values
 from .rulesrepo import RulesRepo
 from .utils import datanommer_has_message, notification_callback
 
@@ -139,7 +140,7 @@ class FedoraBadgesConsumer:
         self._wait_for_datanommer(message)
 
         log.debug("Updating cached values for %s on %s", message.id, message.topic)
-        update_cached_values(message)
+        # update_cached_values(message)
 
         datagrepper_url = self.config["datagrepper_url"]
         link = f"{datagrepper_url}/id?id={message.id}&is_raw=true&size=extra-large"
@@ -152,8 +153,8 @@ class FedoraBadgesConsumer:
 
         tahrir = self._get_tahrir_client()
         for badge_rule in self.badge_rules:
-            for recipient in badge_rule.matches(message, tahrir):
-                try:
+            try:
+                for recipient in badge_rule.matches(message, tahrir):
                     log.debug(
                         "Rule %s matched for %s (message %s on %s)",
                         badge_rule.badge_id,
@@ -162,9 +163,9 @@ class FedoraBadgesConsumer:
                         message.topic,
                     )
                     self.award_badge(recipient, badge_rule, link)
-                except Exception:
-                    log.exception("Rule: %s, message: %s", repr(badge_rule), repr(message))
-                    self.tahrir.session.rollback()
+            except Exception:
+                log.exception("Rule: %s, message: %s", repr(badge_rule), repr(message))
+                self.tahrir.session.rollback()
 
         log.debug("Done with %s, %s", message.topic, message.id)
 
