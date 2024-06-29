@@ -1,7 +1,8 @@
-import datetime
+# import datetime
 import logging
-from contextlib import suppress
 
+# from contextlib import suppress
+# from itertools import chain
 # from functools import partial
 # from itertools import chain
 import pymemcache
@@ -13,11 +14,10 @@ from dogpile.cache import make_region
 # from dogpile.cache.api import NO_VALUE
 from dogpile.cache.proxy import ProxyBackend
 
+
 # from dogpile.cache.util import kwarg_function_key_generator
-from fedora_messaging.message import Message as FMMessage
-
-
-# from .utils import get_fas_user
+# from fedora_messaging.message import Message as FMMessage
+# from .utils import json_hash
 
 
 log = logging.getLogger(__name__)
@@ -43,35 +43,35 @@ class ErrorLoggingProxy(ProxyBackend):
             log.exception("Could not set the value in the cache (len=%s)", length)
 
 
-def _query_has_single_arg(search_kwargs, required_kwargs):
-    query_keys = set(search_kwargs.keys())
-    with suppress(KeyError):
-        query_keys.remove("rows_per_page")
-    if query_keys != set(required_kwargs):
-        return False
-    return all(len(search_kwargs[arg]) == 1 for arg in required_kwargs)
+# def _query_has_single_arg(search_kwargs, required_kwargs):
+#     query_keys = set(search_kwargs.keys())
+#     with suppress(KeyError):
+#         query_keys.remove("rows_per_page")
+#     if query_keys != set(required_kwargs):
+#         return False
+#     return all(len(search_kwargs[arg]) == 1 for arg in required_kwargs)
 
 
-class CachedDatanommerMessage:
-    def __init__(self, message: FMMessage):
-        self.msg_id = message.id
-        self.topic = message.topic
-        self.timestamp = datetime.datetime.now(tz=datetime.timezone.utc)
-        self.msg = message.body
-        self.headers = message._properties.headers
-        self.users = message.usernames
-        self.packages = message.packages
+# class CachedDatanommerMessage:
+#     def __init__(self, message: FMMessage):
+#         self.msg_id = message.id
+#         self.topic = message.topic
+#         self.timestamp = datetime.datetime.now(tz=datetime.timezone.utc)
+#         self.msg = message.body
+#         self.headers = message._properties.headers
+#         self.users = message.usernames
+#         self.packages = message.packages
 
 
-class CachedDatanommerQuery:
-    def __init__(self, result):
-        self._result = result
+# class CachedDatanommerQuery:
+#     def __init__(self, result):
+#         self._result = result
 
-    def all(self):
-        return self._result
+#     def all(self):
+#         return self._result
 
-    def count(self):
-        return self._result.count() if hasattr(self._result, "count") else len(self._result or [])
+#     def count(self):
+#         return self._result.count() if hasattr(self._result, "count") else len(self._result or [])
 
 
 def get_cached_messages_count(badge_id: str, candidate: str, get_previous_fn):
@@ -94,6 +94,61 @@ def get_cached_messages_count(badge_id: str, candidate: str, get_previous_fn):
     cache.set(key, new_value)
     return new_value
 
+
+# def first_message_timestamp(search_kwargs, fasjson):
+#     key = f"{json_hash(search_kwargs)}|first_timestamp"
+#     get_first_kwargs = search_kwargs.copy()
+#     # remove grep() args that are not allowed by get_first()
+#     for kwarg in ("defer", "rows_per_page", "page"):
+#         with suppress(KeyError):
+#             del get_first_kwargs[kwarg]
+
+#     def _get_user_creation_time(username):
+#         if fasjson is None:
+#             return None
+#         # user = cache.get_or_create(
+#         #     f"fas_user|{username}",
+#         #     fasjson.get_user,
+#         #     # short expiration time in case the user changes something in their account
+#         #     expiration_time=300,
+#         #     # Don't cache on 404
+#         #     should_cache_fn=lambda result: result is not None,
+#         #     creator_args=((username,), {}),
+#         # )
+#         user = fasjson.get_user(username)
+#         if user is None:
+#             return None
+#         return datetime.datetime.fromisoformat(user["creation"])
+
+#     def _get_first_timestamp(**kwargs):
+#         user_related_args = ("users", "agents")
+#         if "start" not in kwargs and any(arg in kwargs for arg in user_related_args):
+#             # Optimization: don't search before the user was created
+#             kwargs["start"] = None
+#             for username in chain(kwargs[arg] for arg in user_related_args):
+#                 user_creation_time = _get_user_creation_time(username)
+#                 if user_creation_time is not None:
+#                     # start looking the day before, to avoid messing up with timezones
+#                     start = user_creation_time - datetime.timedelta(days=1)
+#                     if kwargs["start"] is None or start > kwargs["start"]:
+#                         kwargs["start"] = start
+#             if kwargs["start"] is not None and "end" not in kwargs:
+#                 # user creation time is naive, let's keep the end dt naive as well
+#                 # also, the datanommer column is currently naive, so, let's be consistent
+#                 kwargs["end"] = datetime.datetime.now()
+
+#         log.debug("Getting first DN message for: %r", kwargs)
+#         first_message = Message.get_first(**kwargs)
+#         return first_message.timestamp if first_message is not None else None
+
+#     return cache.get_or_create(
+#         key,
+#         creator=_get_first_timestamp,
+#         creator_args=((), get_first_kwargs),
+#         # Don't cache if there wasn't any previous message
+#         should_cache_fn=lambda r: r is not None,
+#         expiration_time=VERY_LONG_EXPIRATION_TIME,
+#     )
 
 # class CachedValue:
 

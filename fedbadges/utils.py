@@ -14,7 +14,6 @@ import typing
 
 import backoff
 import datanommer.models
-import fasjson_client
 import sqlalchemy as sa
 from fedora_messaging import api as fm_api
 from fedora_messaging import exceptions as fm_exceptions
@@ -190,60 +189,6 @@ def notification_callback(message):
         _publish(message)
     except fm_exceptions.BaseException:
         log.error(f"Publishing message failed. Giving up. {traceback.format_tb(sys.exc_info()[2])}")
-
-
-def user_exists_in_fas(fasjson, user: str):
-    """Return true if the user exists in FAS."""
-    return get_fas_user(user, fasjson) is not None
-
-
-def _fasjson_backoff_hdlr(details):
-    log.warning(f"FASJSON call failed. Retrying. {traceback.format_tb(sys.exc_info()[2])}")
-
-
-@backoff.on_exception(
-    backoff.expo,
-    (ConnectionError, TimeoutError),
-    max_tries=3,
-    on_backoff=_fasjson_backoff_hdlr,
-)
-def get_fas_user(username: str, fasjson):
-    """Return the user in FAS."""
-    try:
-        return fasjson.get_user(username=username).result
-    except fasjson_client.errors.APIError as e:
-        if e.code == 404:
-            return None
-        raise
-
-
-def nick2fas(nick, fasjson):
-    """Return the user in FAS."""
-    fas_user = get_fas_user(nick, fasjson)
-    if fas_user is None:
-        return None
-    return fas_user["username"]
-
-
-def email2fas(email, fasjson):
-    """Return the user with the specified email in FAS."""
-    if email.endswith("@fedoraproject.org"):
-        return nick2fas(email.rsplit("@", 1)[0], fasjson)
-
-    @backoff.on_exception(
-        backoff.expo,
-        (ConnectionError, TimeoutError),
-        max_tries=3,
-        on_backoff=_fasjson_backoff_hdlr,
-    )
-    def _search_user(email):
-        return fasjson.search(email=email).result
-
-    result = _search_user(email)
-
-    if not result:
-        return None
-    return result[0]["username"]
 
 
 def datanommer_has_message(msg_id: str, since: datetime.datetime | None = None):

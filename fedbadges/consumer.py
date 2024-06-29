@@ -13,7 +13,6 @@ import time
 from functools import partial
 
 import datanommer.models
-import fasjson_client
 import tahrir_api.dbapi
 from fedora_messaging.api import Message
 from fedora_messaging.config import conf as fm_config
@@ -21,6 +20,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from .aio import Periodic
 from .cached import configure as configure_cache
+from .fas import FASProxy
 
 # from .cached import on_message as update_cached_values
 from .rulesrepo import RulesRepo
@@ -65,7 +65,7 @@ class FedoraBadgesConsumer:
 
         # FASJSON stuff
         self.fasjson = await self.loop.run_in_executor(
-            None, fasjson_client.Client, self.config["fasjson_base_url"]
+            None, FASProxy, self.config["fasjson_base_url"]
         )
 
         # Load badge definitions
