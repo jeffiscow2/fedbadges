@@ -11,60 +11,26 @@ import datetime
 import functools
 import inspect
 import logging
-import re
-from contextlib import suppress
-from copy import copy
 from itertools import chain
 
 import datanommer.models
 from fedora_messaging.api import Message
 from tahrir_api.dbapi import TahrirDatabase
 
-from fedbadges.cached import (
-    cache,
-    # CachedDatanommerQuery,
-    # DATANOMMER_CACHED_VALUES,
-    get_cached_messages_count,
-    VERY_LONG_EXPIRATION_TIME,
-)
+from fedbadges.cached import cache, get_cached_messages_count
+from fedbadges.fas import distgit2fas, krb2fas, openid2fas
 from fedbadges.utils import (
     # These are all in-process utilities
-    # construct_substitutions,
-    # format_args,
     graceful,
     json_hash,
     lambda_factory,
     list_of_lambdas,
-    # recursive_lambda_factory,
     single_argument_lambda,
     single_argument_lambda_factory,
 )
 
 
 log = logging.getLogger(__name__)
-
-
-# Match OpenID agent strings, i.e. http://FAS.id.fedoraproject.org
-def openid2fas(openid, config):
-    id_provider_hostname = re.escape(config["id_provider_hostname"])
-    m = re.search(f"^https?://([a-z][a-z0-9]+)\\.{id_provider_hostname}$", openid)
-    if m:
-        return m.group(1)
-    return openid
-
-
-def distgit2fas(uri, config):
-    distgit_hostname = re.escape(config["distgit_hostname"])
-    m = re.search(f"^https?://{distgit_hostname}/user/([a-z][a-z0-9]+)$", uri)
-    if m:
-        return m.group(1)
-    return uri
-
-
-def krb2fas(name):
-    if "/" not in name:
-        return name
-    return name.split("/")[0]
 
 
 def validate_possible(possible, fields):
@@ -251,7 +217,6 @@ class BadgeRule:
             ]
         )
 
-        print("before checking awards:", candidates)
         # Limit candidates to only those who do not already have this badge.
         candidates = frozenset(
             [
@@ -262,12 +227,10 @@ class BadgeRule:
             ]
         )
 
-        print("after checking existing awards, before checking FAS:", candidates)
         # Make sure the person actually has a FAS account before we award anything.
         # https://github.com/fedora-infra/tahrir/issues/225
         candidates = set([u for u in candidates if self.fasjson.user_exists(u)])
 
-        print("Final:", candidates)
         return candidates
 
     def matches(self, msg: Message, tahrir: TahrirDatabase):
@@ -281,10 +244,11 @@ class BadgeRule:
         # our more heavyweight checks matched up.
 
         candidates = self._get_candidates(msg, tahrir)
+        log.debug("Candidates: %r", candidates)
+
         # If no-one would get the badge at this point, then no reason to waste
         # time doing any further checks.  No need to query datanommer.
         if not candidates:
-            print(f"Rule {self.badge_id} has no candidate")
             return frozenset()
 
         if self.previous:
@@ -299,14 +263,15 @@ class BadgeRule:
                 messages_count = get_cached_messages_count(
                     self.badge_id, candidate, previous_count_fn
                 )
-                print(f"Rule {self.badge_id}: message count is {messages_count}")
+                log.debug(
+                    "Rule %s: message count for %s is %s", self.badge_id, candidate, messages_count
+                )
                 if self.condition(messages_count):
                     awardees.add(candidate)
         except OSError:
             log.exception("Failed checking criteria for rule %s", self.badge_id)
             return frozenset()
 
-        print(f"Rule {self.badge_id}: awarding to {awardees}")
         return awardees
 
 
@@ -440,150 +405,6 @@ class Condition(AbstractChild):
         return self._condition(value)
 
 
-# class Criteria(AbstractTopLevelComparator):
-#     possible = frozenset(
-#         [
-#             "datanommer",
-#         ]
-#     ).union(operators)
-
-#     def __init__(self, *args, **kwargs):
-#         super().__init__(*args, **kwargs)
-
-#         if not self.children:
-#             # Then, by AbstractComparator rules, I am a leaf node.  Specialize!
-#             self._specialize()
-
-#     def _specialize(self):
-#         if self.attribute == "datanommer":
-#             self.specialization = DatanommerCriteria(self.expected_value, self)
-#         # TODO -- expand this with other "backends" as necessary
-#         # elif self.attribute == 'fas'
-#         else:
-#             raise RuntimeError("This should be impossible to reach.")
-
-#     @graceful(set())
-#     def matches(self, msg):
-#         if self.children:
-#             return operators[self.attribute](child.matches(msg) for child in self.children)
-#         else:
-#             return self.specialization.matches(msg)
-
-
-# class AbstractSpecializedComparator(AbstractComparator):
-#     pass
-
-
-# class DatanommerCriteria(AbstractSpecializedComparator):
-#     required = possible = frozenset(
-#         [
-#             "filter",
-#             "operation",
-#         ]
-#     )
-
-#     def __init__(self, *args, **kwargs):
-#         super().__init__(*args, **kwargs)
-#         # Determine what arguments datanommer.models.Message.grep accepts
-#         argspec = inspect.getfullargspec(datanommer.models.Message.make_query)
-#         grep_arguments = set(argspec.args[1:])
-#         grep_arguments.update({"rows_per_page", "page", "order"})
-#         # Validate the filter
-#         validate_possible(grep_arguments, self._d["filter"])
-
-#         top_parent = self.get_top_parent()
-#         self.fasjson = getattr(top_parent, "fasjson", None)
-
-#     def _construct_query(self, msg):
-#         """Construct a datanommer query for this message.
-
-#         The "filter" section of this criteria object will be used.  It will
-#         first be formatted with any substitutions present in the incoming
-#         message.  This is used, for instance, to construct a query like "give
-#         me all the messages bearing the same topic as the message that just
-#         arrived".
-#         """
-#         subs = construct_substitutions(msg)
-#         kwargs = format_args(copy.copy(self._d["filter"]), subs)
-#         kwargs = recursive_lambda_factory(kwargs, {"msg": msg.body, "message": msg}, name="msg")
-#         return kwargs
-
-#     def _make_query(self, search_kwargs):
-#         log.debug("Making datanommer query: %r", search_kwargs)
-#         search_kwargs["defer"] = True
-#         total, pages, query = datanommer.models.Message.grep(**search_kwargs)
-#         query.all = lambda: datanommer.models.session.scalars(query).all()
-#         return total, pages, query
-
-#     def _try_cache_or_make_query(self, msg: Message):
-#         search_kwargs = self._construct_query(msg)
-#         # Try cached values
-#         for CachedValue in DATANOMMER_CACHED_VALUES:
-#             cached_value = CachedValue(fasjson=self.fasjson)
-#             if not cached_value.is_applicable(search_kwargs, self._d):
-#                 log.debug(
-#                     "%s with kwargs %r is not applicable to %r",
-#                     CachedValue.__name__,
-#                     search_kwargs,
-#                     self._d,
-#                 )
-#                 continue
-#             log.debug(
-#                 "Using the cached datanommer value for %s on %r",
-#                 CachedValue.__name__,
-#                 search_kwargs,
-#             )
-#             # Don't update the cache here, there are ~100 rules for a single incoming message and
-#             # each could be increasing the value while there's only one actual message.
-#             # cached_value.on_message(msg)
-#             total, messages = cached_value.get(**search_kwargs)
-#             log.debug("Got %s results from cache", total)
-#             query = CachedDatanommerQuery(messages)
-#             return total, query
-
-#         total, pages, query = self._make_query(search_kwargs)
-#         return total, query
-
-#     def _format_lambda_operation(self, msg):
-#         """Format the string representation of a lambda operation.
-
-#         The lambda operation can be formatted here to include strings that
-#         appear in the message being evaluated like
-#         %(msg.comment.update_submitter)s.  Placeholders like that will have
-#         their value substituted with whatever appears in the incoming message.
-#         """
-#         subs = construct_substitutions(msg)
-#         operation = format_args(copy.copy(self._d["operation"]), subs)
-#         return operation["lambda"]
-
-#     def _get_value(self, msg: Message):
-#         total, query = self._try_cache_or_make_query(msg)
-#         if self._d["operation"] == "count":
-#             result = total
-#         elif isinstance(self._d["operation"], dict):
-#             expression = self._format_lambda_operation(msg)
-#             func = single_argument_lambda_factory(expression=expression, name="query")
-#             result = func(query)
-#         else:
-#             operation = getattr(query, self._d["operation"])
-#             result = operation()
-#         return result
-
-#     def matches(self, msg: Message):
-#         """A datanommer criteria check is composed of three steps.
-
-#         - A datanommer query is constructed by combining our yaml definition
-#           with the incoming fedmsg message that triggered us.
-#         - An operation in python is constructed by comining our yaml definition
-#           with the incoming fedmsg message that triggered us.  That operation
-#           is then executed against the datanommer query object.
-#         - A condition, derived from our yaml definition, is evaluated with the
-#           result of the operation from the previous step and is returned.
-#         """
-#         result = self._get_value(msg)
-#         return self.condition(result)
-
-
 class DatanommerCounter(AbstractChild):
     required = possible = frozenset(
         [
@@ -605,7 +426,7 @@ class DatanommerCounter(AbstractChild):
         if isinstance(self._d["operation"], dict) and list(self._d["operation"]) == ["lambda"]:
             expression = self._d["operation"]["lambda"]
             self._operation_func = lambda_factory(
-                expression=expression, args = ("message", "results")
+                expression=expression, args=("message", "results")
             )
         elif self._d["operation"] != "count":
             raise ValueError("Datanommer operations are either 'count' or a lambda")
@@ -626,46 +447,10 @@ class DatanommerCounter(AbstractChild):
 
     def _make_query(self, search_kwargs):
         log.debug("Making datanommer query: %r", search_kwargs)
-        _search_kwargs = copy(search_kwargs)
+        _search_kwargs = search_kwargs.copy()
         _search_kwargs["defer"] = True
         total, pages, query = datanommer.models.Message.grep(**_search_kwargs)
         return total, pages, query
-
-    # def _try_cache_or_make_query(self, msg: Message, candidate: str):
-    #     try:
-    #         search_kwargs = {
-    #             search_key: getter(message=msg, recipient=candidate)
-    #             for search_key, getter in self._filter_getters.items()
-    #         }
-    #     except KeyError as e:
-    #         log.debug("Could not compute the search kwargs. KeyError: %s", e)
-    #         return 0, CachedDatanommerQuery([])
-    #     # Try cached values
-    #     for CachedValue in DATANOMMER_CACHED_VALUES:
-    #         cached_value = CachedValue(fasjson=self.fasjson)
-    #         if not cached_value.is_applicable(search_kwargs, self._d):
-    #             log.debug(
-    #                 "%s with kwargs %r is not applicable to %r",
-    #                 CachedValue.__name__,
-    #                 search_kwargs,
-    #                 self._d,
-    #             )
-    #             continue
-    #         log.debug(
-    #             "Using the cached datanommer value for %s on %r",
-    #             CachedValue.__name__,
-    #             search_kwargs,
-    #         )
-    #         # Don't update the cache here, there are ~100 rules for a single incoming message and
-    #         # each could be increasing the value while there's only one actual message.
-    #         # cached_value.on_message(msg)
-    #         total, messages = cached_value.get(**search_kwargs)
-    #         log.debug("Got %s results from cache", total)
-    #         query = CachedDatanommerQuery(messages)
-    #         return total, query
-
-    #     total, pages, query = self._make_query(search_kwargs)
-    #     return total, query
 
     def _get_start(self, search_kwargs):
         # This is an optimization: don't search before the user was created
@@ -695,7 +480,9 @@ class DatanommerCounter(AbstractChild):
                 start = user_start
         return start
 
-    def _query_with_operation(self, message: Message, search_kwargs: dict[str, int|str|list[str]]):
+    def _query_with_operation(
+        self, message: Message, search_kwargs: dict[str, int | str | list[str]]
+    ):
         if "start" not in search_kwargs:
             search_kwargs["start"] = self._get_start(search_kwargs)
             if search_kwargs["start"] is not None and "end" not in search_kwargs:
@@ -726,17 +513,5 @@ class DatanommerCounter(AbstractChild):
         # Cache for other rules analyzing this message
         cache_key = f"{msg.id}|{json_hash(search_kwargs)}|{json_hash(self._d['operation'])}"
         return cache.get_or_create(
-            cache_key,
-            self._query_with_operation,
-            creator_args=((msg, search_kwargs), {})
+            cache_key, self._query_with_operation, creator_args=((msg, search_kwargs), {})
         )
-        # total, _pages, query = self._make_query(search_kwargs)
-        # if self._d["operation"] == "count":
-        #     return total
-        # elif isinstance(self._d["operation"], dict):
-        #     query_results = datanommer.models.session.scalars(query).all()
-        #     try:
-        #         return self._operation_func(results=query_results)
-        #     except KeyError as e:
-        #         log.debug("Could not run the lambda. KeyError: %s", e)
-        #         return 0

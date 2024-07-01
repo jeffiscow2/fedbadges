@@ -96,3 +96,26 @@ class FASProxy:
         if not result:
             return None
         return result[0]["username"]
+
+
+# Match OpenID agent strings, i.e. http://FAS.id.fedoraproject.org
+def openid2fas(openid, config):
+    id_provider_hostname = re.escape(config["id_provider_hostname"])
+    m = re.search(f"^https?://([a-z][a-z0-9]+)\\.{id_provider_hostname}$", openid)
+    if m:
+        return m.group(1)
+    return openid
+
+
+def distgit2fas(uri, config):
+    distgit_hostname = re.escape(config["distgit_hostname"])
+    m = re.search(f"^https?://{distgit_hostname}/user/([a-z][a-z0-9]+)$", uri)
+    if m:
+        return m.group(1)
+    return uri
+
+
+def krb2fas(name):
+    if "/" not in name:
+        return name
+    return name.split("/")[0]

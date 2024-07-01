@@ -24,52 +24,6 @@ from twisted.internet import reactor, threads
 log = logging.getLogger(__name__)
 
 
-# def construct_substitutions(message: fm_api.Message):
-#     subs = dict_to_subs({"msg": message.body})
-#     subs["topic"] = message.topic
-#     subs["usernames"] = message.usernames
-#     return subs
-
-
-def dict_to_subs(msg: dict):
-    """Convert a fedmsg message into a dict of substitutions."""
-    subs = {}
-    for key1 in msg:
-        if isinstance(msg[key1], dict):
-            subs.update(
-                dict(
-                    [
-                        (".".join([key1, key2]), val2)
-                        for key2, val2 in list(dict_to_subs(msg[key1]).items())
-                    ]
-                )
-            )
-            subs[key1] = msg[key1]
-        elif isinstance(msg[key1], str):
-            subs[key1] = msg[key1].lower()
-        else:
-            subs[key1] = msg[key1]
-    return subs
-
-
-# def format_args(obj, subs):
-#     """Recursively apply a substitutions dict to a given criteria subtree"""
-
-#     if isinstance(obj, dict):
-#         for key in obj:
-#             obj[key] = format_args(obj[key], subs)
-#     elif isinstance(obj, list) or isinstance(obj, tuple):
-#         return [format_args(item, subs) for item in obj]
-#     elif isinstance(obj, str) and obj[2:-2] in subs:
-#         obj = subs[obj[2:-2]]
-#     elif isinstance(obj, (int, float)):
-#         pass
-#     else:
-#         obj = obj % subs
-
-#     return obj
-
-
 def lambda_factory(expression: str, args: tuple[str] = ("value",)):
     """Compile a lambda expression with a list of arguments"""
 
@@ -114,24 +68,6 @@ def list_of_lambdas(
 
     return _get_all_results
 
-
-# def recursive_lambda_factory(obj, arg, name="value"):
-#     """Given a dict, find any lambdas, compile, and execute them."""
-
-#     if isinstance(obj, dict):
-#         for key in obj:
-#             if key == "lambda":
-#                 # If so, *replace* the parent dict with the result of the expr
-#                 obj = single_argument_lambda(obj[key], arg, name)
-#                 break
-#             else:
-#                 obj[key] = recursive_lambda_factory(obj[key], arg, name)
-#     elif isinstance(obj, list):
-#         return [recursive_lambda_factory(e, arg, name) for e in obj]
-#     else:
-#         pass
-
-#     return obj
 
 def json_hash(d):
     str_repr = json.dumps(d, sort_keys=True)

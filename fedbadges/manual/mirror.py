@@ -29,7 +29,6 @@ def main(debug):
     )
     fasjson = fasjson_client.Client(config["fasjson_base_url"])
 
-
     url = "https://mirrormanager.fedoraproject.org/api/mirroradmins"
     response = requests.get(url, timeout=HTTP_TIMEOUT)
 

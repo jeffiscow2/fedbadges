@@ -8,7 +8,6 @@ Authors:  Ross Delinger
 import asyncio
 import datetime
 import logging
-import threading
 import time
 from functools import partial
 
@@ -21,28 +20,21 @@ from sqlalchemy.exc import SQLAlchemyError
 from .aio import Periodic
 from .cached import configure as configure_cache
 from .fas import FASProxy
-
-# from .cached import on_message as update_cached_values
 from .rulesrepo import RulesRepo
 from .utils import datanommer_has_message, notification_callback
 
 
 log = logging.getLogger(__name__)
 
-DEFAULT_DELAY_LIMIT = 100
 DEFAULT_RULES_RELOAD_INTERVAL = 15  # in minutes
 MAX_WAIT_DATANOMMER = 5  # seconds
 
 
 class FedoraBadgesConsumer:
-    delay_limit = 100
 
     def __init__(self):
         self.config = fm_config["consumer_config"]
-        self.delay_limit = int(self.config.get("delay_limit", DEFAULT_DELAY_LIMIT))
         self.badge_rules = []
-        self.lock = threading.Lock()
-
         self.loop = asyncio.get_event_loop()
         self._ready = self.loop.create_task(self.setup())
         if not self.loop.is_running():
@@ -140,13 +132,9 @@ class FedoraBadgesConsumer:
         self._wait_for_datanommer(message)
 
         log.debug("Updating cached values for %s on %s", message.id, message.topic)
-        # update_cached_values(message)
 
         datagrepper_url = self.config["datagrepper_url"]
-        link = f"{datagrepper_url}/id?id={message.id}&is_raw=true&size=extra-large"
-
-        # Define this so we can refer to it in error handling below
-        badge_rule = None
+        link = f"{datagrepper_url}/v2/id?id={message.id}&is_raw=true&size=extra-large"
 
         # Award every badge as appropriate.
         log.debug("Processing rules for %s on %s", message.id, message.topic)
@@ -156,7 +144,7 @@ class FedoraBadgesConsumer:
             try:
                 for recipient in badge_rule.matches(message, tahrir):
                     log.debug(
-                        "Rule %s matched for %s (message %s on %s)",
+                        "Awarding %s to %s (message %s on %s)",
                         badge_rule.badge_id,
                         recipient,
                         message.id,
