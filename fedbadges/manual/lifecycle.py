@@ -2,11 +2,11 @@ import datetime
 import logging
 
 import click
-import fasjson_client
 from fedora_messaging.config import conf as fm_config
 from tahrir_api.dbapi import TahrirDatabase
 
 import fedbadges.utils
+from fedbadges.fas import FASProxy
 
 from .utils import award_badge, option_debug, setup_logging
 
@@ -15,22 +15,6 @@ from .utils import award_badge, option_debug, setup_logging
 REQUIRED_GROUPS = ["fedora-contributor"]
 
 log = logging.getLogger(__name__)
-
-
-def get_fas_userlist(fasjson, threshold):
-    search_terms = dict(group=REQUIRED_GROUPS, creation__before=threshold)
-    page_number = 0
-    next_page_exists = True
-    while next_page_exists:
-        page_number += 1
-        response = fasjson.search(
-            page_size=40,
-            page_number=page_number,
-            _request_options={"headers": {"X-Fields": "username"}},
-            **search_terms
-        )
-        yield from response.result
-        next_page_exists = page_number < response.page["total_pages"]
 
 
 @click.command()
@@ -47,7 +31,7 @@ def main(debug):
     if not badge:
         raise ValueError("badge does not exist")
 
-    fasjson = fasjson_client.Client(config["fasjson_base_url"])
+    fasjson = FASProxy(config["fasjson_base_url"])
 
     now = datetime.datetime.now(tz=datetime.timezone.utc)
     year = datetime.timedelta(days=365.5)
@@ -67,7 +51,9 @@ def main(debug):
             log.error("Badge %s does not exist", badge_id)
             continue
         threshold = now - delta
-        for person in get_fas_userlist(fasjson, threshold):
+        for person in fasjson.search_user(
+            group=REQUIRED_GROUPS, creation__before=threshold, _fields=["username"]
+        ):
             email = person["username"] + "@fedoraproject.org"
             award_badge(tahrir, badge, email)
 

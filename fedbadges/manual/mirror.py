@@ -1,13 +1,12 @@
 import logging
 
 import click
-import fasjson_client
 import requests
 from fedora_messaging.config import conf as fm_config
 from tahrir_api.dbapi import TahrirDatabase
 
 import fedbadges.utils
-from fedbadges.utils import user_exists_in_fas
+from fedbadges.fas import FASProxy
 
 from .utils import award_badge, option_debug, setup_logging
 
@@ -27,7 +26,7 @@ def main(debug):
         uri,
         notification_callback=fedbadges.utils.notification_callback,
     )
-    fasjson = fasjson_client.Client(config["fasjson_base_url"])
+    fasjson = FASProxy(config["fasjson_base_url"])
 
     url = "https://mirrormanager.fedoraproject.org/api/mirroradmins"
     response = requests.get(url, timeout=HTTP_TIMEOUT)
@@ -42,7 +41,7 @@ def main(debug):
         raise ValueError("Badge does not exist")
 
     for username in usernames:
-        if not user_exists_in_fas(fasjson, username):
+        if not fasjson.user_exists(username):
             log.info(f"Mirror admin {username} does not exist in FAS, skipping.")
             continue
 

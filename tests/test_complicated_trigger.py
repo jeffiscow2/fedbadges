@@ -1,4 +1,5 @@
 import logging
+from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
 import pytest
@@ -37,7 +38,7 @@ def test_complicated_trigger_against_partial_mismatch(rule, message, tahrir_clie
     assert len(caplog.messages) == 1
 
 
-def test_complicated_trigger_against_full_match(rule, message, tahrir_client):
+def test_complicated_trigger_against_full_match(rule, message, tahrir_client, fasjson_client):
     message.body = {
         "tag": {
             "dislike": 0,
@@ -67,10 +68,7 @@ def test_complicated_trigger_against_full_match(rule, message, tahrir_client):
         def count(self):
             return float("inf")  # Master tagger
 
-    with (
-        patch("fedbadges.rules.user_exists_in_fas") as g,
-        patch("datanommer.models.Message.grep") as grep,
-    ):
-        grep.return_value = float("inf"), 1, MockQuery()
-        g.return_value = True
+    fasjson_client.get_user.return_value = SimpleNamespace(result={"username": "dummy-user"})
+    with patch("fedbadges.rules.get_cached_messages_count") as get_cached_messages_count:
+        get_cached_messages_count.return_value = float("inf")
         assert rule.matches(message, tahrir_client) == {"ralph"}

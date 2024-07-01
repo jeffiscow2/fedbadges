@@ -66,7 +66,7 @@ def test_lambdas_pass():
     """Test that lambdas match correctly"""
     trigger = fedbadges.rules.Trigger(
         {
-            "lambda": "'s3kr3t' in json.dumps(msg['msg'])",
+            "lambda": "'s3kr3t' in json.dumps(message.body)",
         }
     )
     message = Message(body=dict(nested=dict(something="s3kr3t")))
@@ -77,7 +77,7 @@ def test_lambdas_fail():
     """Test that lambdas fail correctly"""
     trigger = fedbadges.rules.Trigger(
         {
-            "lambda": "'one string' in json.dumps(msg['msg'])",
+            "lambda": "'one string' in json.dumps(message.body)",
         }
     )
     message = Message(body=dict(nested=dict(something="another string")))
@@ -110,7 +110,7 @@ def test_two_fields():
 
 def test_malformed_trigger():
     """Test that a single, undefined field is handled as invalid."""
-    with pytest.raises(KeyError):
+    with pytest.raises(ValueError):
         fedbadges.rules.Trigger(
             dict(
                 watwat="does not exist",

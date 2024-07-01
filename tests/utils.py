@@ -1,5 +1,7 @@
 """ Utilities for tests """
 
+import datetime
+
 from bodhi.messages.schemas.update import UpdateRequestTestingV1
 
 
@@ -7,6 +9,17 @@ def get_rule(rules, name):
     for rule in rules:
         if rule["name"] == name:
             return rule
+
+
+class MockedDatanommerMessage:
+    def __init__(self, message):
+        self.msg_id = message.id
+        self.topic = message.topic
+        self.timestamp = datetime.datetime.now(tz=datetime.timezone.utc)
+        self.msg = message.body
+        self.headers = message._properties.headers
+        self.users = message.usernames
+        self.packages = message.packages
 
 
 example_real_bodhi_message = UpdateRequestTestingV1(

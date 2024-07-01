@@ -46,22 +46,38 @@ class FASProxy:
                 return None
             raise
 
-    @backoff.on_exception(
-        backoff.expo,
-        (ConnectionError, TimeoutError),
-        max_tries=3,
-        on_backoff=_fasjson_backoff_hdlr,
-    )
-    def search_user(self, **search_args):
+    def search_user(self, _fields=None, **search_args):
+        _request_options = None
+        if _fields:
+            _request_options = {"headers": {"X-Fields": ",".join(_fields)}}
+
+        @backoff.on_exception(
+            backoff.expo,
+            (ConnectionError, TimeoutError),
+            max_tries=3,
+            on_backoff=_fasjson_backoff_hdlr,
+        )
+        def _do_search(**kwargs):
+            return self._client.search(**kwargs)
+
+        page_number = 0
+        next_page_exists = True
+        while next_page_exists:
+            page_number += 1
+            response = _do_search(
+                page_size=40,
+                page_number=page_number,
+                _request_options=_request_options,
+                **search_args,
+            )
+            yield from response.result
+            next_page_exists = page_number < response.page["total_pages"]
+
+    def search_one_user(self, _fields=None, **search_args):
         try:
-            result = self._client.search(**search_args).result
-        except fasjson_client.errors.APIError as e:
-            if e.code == 404:
-                return None
-            raise
-        if not result:
+            return next(iter(self.search_user(_fields=_fields, **search_args)))
+        except StopIteration:
             return None
-        return result[0]
 
     def search_ircnick(self, nick):
         """Return the username corresponding to the IRC/matrix nickname in FAS."""
@@ -70,7 +86,7 @@ class FASProxy:
         else:
             possible_nicks = [f"matrix:/{nick}", f"irc:/{nick}"]
         for pnick in possible_nicks:
-            user = self.search_user(ircnick=pnick)
+            user = self.search_one_user(ircnick=pnick, _fields=["username"])
             if user is not None:
                 return user["username"]
         # Not found, return None
@@ -81,10 +97,8 @@ class FASProxy:
         if email.endswith("@fedoraproject.org"):
             return email.rsplit("@", 1)[0]
 
-        result = self.search_user(email=email)
-        if not result:
-            return None
-        return result[0]["username"]
+        user = self.search_one_user(email=email, _fields=["username"])
+        return user["username"] if user is not None else None
 
     def search_github(self, uri):
         m = re.search(r"^https?://api.github.com/users/([a-z][a-z0-9-]+)$", uri)
@@ -92,10 +106,8 @@ class FASProxy:
             log.warning("Can't extract the username from %r", uri)
             return None
         github_username = m.group(1)
-        result = self.search_user(github_username__exact=github_username)
-        if not result:
-            return None
-        return result[0]["username"]
+        user = self.search_one_user(github_username__exact=github_username, _fields=["username"])
+        return user["username"] if user is not None else None
 
 
 # Match OpenID agent strings, i.e. http://FAS.id.fedoraproject.org

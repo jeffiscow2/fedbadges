@@ -15,6 +15,11 @@ class MockQuery:
         return 1
 
 
+@pytest.fixture
+def user_exists(fasjson_client):
+    fasjson_client.get_user.return_value = SimpleNamespace(result={"username": "dummy-user"})
+
+
 def test_metadata_validation():
     """Test for failure if not enough metadata"""
     with pytest.raises(ValueError):
@@ -32,7 +37,6 @@ def test_full_specification():
                 discussion="http://somelink.com",
                 issuer_id="fedora-project",
                 image_url="http://somelinke.com/something.png",
-                trigger=dict(topic="test_topic"),
             ),
             1,
             None,
@@ -40,7 +44,7 @@ def test_full_specification():
         )
 
 
-def test_full_simple_success(fasjson_client, tahrir_client):
+def test_full_simple_success(fasproxy, tahrir_client, user_exists):
     """A simple integration test for messages with zero users"""
     rule = fedbadges.rules.BadgeRule(
         dict(
@@ -51,30 +55,26 @@ def test_full_simple_success(fasjson_client, tahrir_client):
             issuer_id="fedora-project",
             image_url="http://somelinke.com/something.png",
             trigger=dict(category="bodhi"),
-            criteria=dict(
-                datanommer=dict(
-                    filter=dict(categories=["pkgdb"]),
-                    operation="count",
-                    condition={"greater than or equal to": 1},
-                )
+            condition={"greater than or equal to": 1},
+            previous=dict(
+                filter=dict(categories=["pkgdb"]),
+                operation="count",
             ),
         ),
         1,
         None,
-        fasjson_client,
+        fasproxy,
     )
     rule.setup(tahrir_client)
 
     msg = example_real_bodhi_message
 
-    with patch("datanommer.models.Message.grep") as f:
-        f.return_value = 1, 1, MockQuery()
-        with patch("fedbadges.rules.user_exists_in_fas") as g:
-            g.return_value = True
-            assert rule.matches(msg, tahrir_client) == {"lmacken"}
+    with patch("fedbadges.rules.get_cached_messages_count") as get_cached_messages_count:
+        get_cached_messages_count.return_value = 1
+        assert rule.matches(msg, tahrir_client) == {"lmacken"}
 
 
-def test_full_simple_match_almost_succeed(fasjson_client, tahrir_client):
+def test_full_simple_match_almost_succeed(fasproxy, tahrir_client):
     """A simple integration test for messages with zero users"""
     rule = fedbadges.rules.BadgeRule(
         dict(
@@ -85,17 +85,15 @@ def test_full_simple_match_almost_succeed(fasjson_client, tahrir_client):
             issuer_id="fedora-project",
             image_url="http://somelinke.com/something.png",
             trigger=dict(category="bodhi"),
-            criteria=dict(
-                datanommer=dict(
-                    filter=dict(categories=["pkgdb"]),
-                    operation="count",
-                    condition={"greater than or equal to": 1},
-                )
+            condition={"greater than or equal to": 1},
+            previous=dict(
+                filter=dict(categories=["pkgdb"]),
+                operation="count",
             ),
         ),
         1,
         None,
-        fasjson_client,
+        fasproxy,
     )
     rule.setup(tahrir_client)
 
@@ -104,12 +102,12 @@ def test_full_simple_match_almost_succeed(fasjson_client, tahrir_client):
     # we should *fail* the ``matches`` call.
     msg = Message(topic="org.fedoraproject.prod.bodhi.mashtask.complete", body={"success": False})
 
-    with patch("datanommer.models.Message.grep") as f:
-        f.return_value = None, None, MockQuery()
+    with patch("fedbadges.rules.get_cached_messages_count") as get_cached_messages_count:
+        get_cached_messages_count.return_value = 0
         assert rule.matches(msg, tahrir_client) == set()
 
 
-def test_yaml_specified_awardee_success(fasjson_client, tahrir_client):
+def test_yaml_specified_awardee_success(fasproxy, tahrir_client, user_exists):
     """Test that we can override msg.usernames."""
     # For instance, fas.group.member.remove contains two users,
     # the one being removed from a group, and the one doing the removing.
@@ -128,18 +126,16 @@ def test_yaml_specified_awardee_success(fasjson_client, tahrir_client):
             issuer_id="fedora-project",
             image_url="http://somelinke.com/something.png",
             trigger=dict(category="fas"),
-            criteria=dict(
-                datanommer=dict(
-                    filter=dict(categories=["pkgdb"]),
-                    operation="count",
-                    condition={"greater than or equal to": 1},
-                )
+            condition={"greater than or equal to": 1},
+            previous=dict(
+                filter=dict(categories=["pkgdb"]),
+                operation="count",
             ),
-            recipient=["%(msg.agent.username)s", "%(msg.user.username)s"],
+            recipient="[message.body['agent']['username'], message.body['user']['username']]",
         ),
         1,
         None,
-        fasjson_client,
+        fasproxy,
     )
     rule.setup(tahrir_client)
 
@@ -152,14 +148,12 @@ def test_yaml_specified_awardee_success(fasjson_client, tahrir_client):
         },
     )
 
-    with patch("datanommer.models.Message.grep") as f:
-        f.return_value = 1, 1, MockQuery()
-        with patch("fedbadges.rules.user_exists_in_fas") as g:
-            g.return_value = True
-            assert rule.matches(msg, tahrir_client) == {"toshio", "ralph"}
+    with patch("fedbadges.rules.get_cached_messages_count") as get_cached_messages_count:
+        get_cached_messages_count.return_value = 1
+        assert rule.matches(msg, tahrir_client) == {"toshio", "ralph"}
 
 
-def test_yaml_specified_awardee_failure(fasjson_client, tahrir_client):
+def test_yaml_specified_awardee_failure(fasproxy, tahrir_client, user_exists):
     """Test that when we don't override msg.usernames, we get 2 awardees."""
     rule = fedbadges.rules.BadgeRule(
         dict(
@@ -170,17 +164,15 @@ def test_yaml_specified_awardee_failure(fasjson_client, tahrir_client):
             issuer_id="fedora-project",
             image_url="http://somelinke.com/something.png",
             trigger=dict(category="fas"),
-            criteria=dict(
-                datanommer=dict(
-                    filter=dict(categories=["pkgdb"]),
-                    operation="count",
-                    condition={"greater than or equal to": 1},
-                )
+            condition={"greater than or equal to": 1},
+            previous=dict(
+                filter=dict(categories=["pkgdb"]),
+                operation="count",
             ),
         ),
         1,
         None,
-        fasjson_client,
+        fasproxy,
     )
     rule.setup(tahrir_client)
 
@@ -195,14 +187,12 @@ def test_yaml_specified_awardee_failure(fasjson_client, tahrir_client):
         },
     )
 
-    with patch("datanommer.models.Message.grep") as f:
-        f.return_value = 1, 1, MockQuery()
-        with patch("fedbadges.rules.user_exists_in_fas") as g:
-            g.return_value = True
-            assert rule.matches(msg, tahrir_client) == {"toshio"}
+    with patch("fedbadges.rules.get_cached_messages_count") as get_cached_messages_count:
+        get_cached_messages_count.return_value = 1
+        assert rule.matches(msg, tahrir_client) == {"toshio"}
 
 
-def test_against_duplicates(fasjson_client, tahrir_client):
+def test_against_duplicates(fasproxy, tahrir_client, user_exists):
     """Test that matching fails if user already has the badge."""
 
     rule = fedbadges.rules.BadgeRule(
@@ -214,18 +204,16 @@ def test_against_duplicates(fasjson_client, tahrir_client):
             issuer_id="fedora-project",
             image_url="http://somelinke.com/something.png",
             trigger=dict(category="fas"),
-            criteria=dict(
-                datanommer=dict(
-                    filter=dict(categories=["pkgdb"]),
-                    operation="count",
-                    condition={"greater than or equal to": 1},
-                )
+            condition={"greater than or equal to": 1},
+            previous=dict(
+                filter=dict(categories=["pkgdb"]),
+                operation="count",
             ),
-            recipient="%(usernames)s",
+            recipient="message.usernames",
         ),
         1,
         None,
-        fasjson_client,
+        fasproxy,
     )
     rule.setup(tahrir_client)
     tahrir_client.add_person("toshio@fedoraproject.org")
@@ -246,15 +234,12 @@ def test_against_duplicates(fasjson_client, tahrir_client):
         },
     )
 
-    with patch("datanommer.models.Message.grep") as f:
-        f.return_value = 1, 1, MockQuery()
-        with patch("fedbadges.rules.user_exists_in_fas") as g:
-            g.return_value = True
-            assert rule.matches(msg, tahrir_client) == set(["ralph"])
+    with patch("fedbadges.rules.get_cached_messages_count") as get_cached_messages_count:
+        get_cached_messages_count.return_value = 1
+        assert rule.matches(msg, tahrir_client) == set(["ralph"])
 
 
-@patch("fedbadges.rules.user_exists_in_fas", Mock(return_value=True))
-def test_github_awardee(fasjson_client, tahrir_client):
+def test_github_awardee(fasproxy, tahrir_client, fasjson_client, user_exists):
     """Conversion from GitHub URI to FAS users"""
     rule = fedbadges.rules.BadgeRule(
         dict(
@@ -265,19 +250,17 @@ def test_github_awardee(fasjson_client, tahrir_client):
             issuer_id="fedora-project",
             image_url="http://somelinke.com/something.png",
             trigger=dict(category="bodhi"),
-            criteria=dict(
-                datanommer=dict(
-                    filter=dict(categories=["pkgdb"]),
-                    operation="count",
-                    condition={"greater than or equal to": 1},
-                )
+            condition={"greater than or equal to": 1},
+            previous=dict(
+                filter=dict(categories=["pkgdb"]),
+                operation="count",
             ),
-            recipient="%(msg.user)s",
+            recipient="message.body['user']",
             recipient_github2fas="Yes",
         ),
         1,
         None,
-        fasjson_client,
+        fasproxy,
     )
     rule.setup(tahrir_client)
 
@@ -286,14 +269,19 @@ def test_github_awardee(fasjson_client, tahrir_client):
         body={"user": "https://api.github.com/users/dummygh"},
     )
 
-    with patch("datanommer.models.Message.grep") as f:
-        f.return_value = 1, 1, MockQuery()
+    with patch("fedbadges.rules.get_cached_messages_count") as get_cached_messages_count:
+        get_cached_messages_count.return_value = 1
         fasjson_client.search.return_value = SimpleNamespace(result=[{"username": "dummy"}])
         assert rule.matches(msg, tahrir_client) == set(["dummy"])
-        fasjson_client.search.assert_called_once_with(github_username__exact="dummygh")
+        fasjson_client.search.assert_called_once_with(
+            github_username__exact="dummygh",
+            page_size=40,
+            page_number=1,
+            _request_options={"headers": {"X-Fields": "username"}},
+        )
 
 
-def test_krb_awardee(fasjson_client, tahrir_client):
+def test_krb_awardee(fasproxy, tahrir_client, user_exists):
     """Conversion from Kerberos user to FAS users"""
     rule = fedbadges.rules.BadgeRule(
         dict(
@@ -304,19 +292,17 @@ def test_krb_awardee(fasjson_client, tahrir_client):
             issuer_id="fedora-project",
             image_url="http://somelinke.com/something.png",
             trigger=dict(category="buildsys"),
-            criteria=dict(
-                datanommer=dict(
-                    filter=dict(categories=["pkgdb"]),
-                    operation="count",
-                    condition={"greater than or equal to": 1},
-                )
+            condition={"greater than or equal to": 1},
+            previous=dict(
+                filter=dict(categories=["pkgdb"]),
+                operation="count",
             ),
-            recipient="%(msg.owner)s",
+            recipient="message.body['owner']",
             recipient_krb2fas="Yes",
         ),
         1,
         None,
-        fasjson_client,
+        fasproxy,
     )
     rule.setup(tahrir_client)
 
@@ -350,8 +336,6 @@ def test_krb_awardee(fasjson_client, tahrir_client):
         body={"owner": "packagerbot/os-master02.iad2.fedoraproject.org"},
     )
 
-    with patch("datanommer.models.Message.grep") as f:
-        f.return_value = 1, 1, MockQuery()
-        with patch("fedbadges.rules.user_exists_in_fas") as g:
-            g.return_value = True
-            assert rule.matches(msg, tahrir_client) == set(["packagerbot"])
+    with patch("fedbadges.rules.get_cached_messages_count") as get_cached_messages_count:
+        get_cached_messages_count.return_value = 1
+        assert rule.matches(msg, tahrir_client) == set(["packagerbot"])

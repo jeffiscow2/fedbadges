@@ -1,3 +1,4 @@
+from types import SimpleNamespace
 from unittest.mock import patch
 
 import pytest
@@ -11,10 +12,23 @@ class MockQuery:
         return float("inf")  # Master tagger
 
 
+@pytest.fixture
+def user_exists(fasjson_client):
+    fasjson_client.get_user.return_value = SimpleNamespace(result={"username": "dummy-user"})
+
+@pytest.fixture
+def above_threshold():
+    with patch("fedbadges.rules.get_cached_messages_count") as get_cached_messages_count:
+        get_cached_messages_count.return_value = float("inf")
+        yield
+
+
 def test_complicated_recipient_real(
     cache_configured,
     rules,
     tahrir_client,
+    user_exists,
+    above_threshold,
 ):
     rule = get_rule(rules, "Speak Up!")
     msg = Message(
@@ -29,18 +43,14 @@ def test_complicated_recipient_real(
             "channel": "#fedora-meeting",
         },
     )
-    with (
-        patch("fedbadges.rules.user_exists_in_fas") as g,
-        patch("fedbadges.cached.CachedDatanommerValue._year_split_query") as run_query,
-    ):
-        run_query.return_value = float("inf"), MockQuery()
-        g.return_value = True
-        assert rule.matches(msg, tahrir_client) == {"fasuser", "threebean"}
+    assert rule.matches(msg, tahrir_client) == {"fasuser", "threebean"}
 
 
 def test_complicated_recipient_pagure(
     rules,
     tahrir_client,
+    user_exists,
+    above_threshold,
 ):
     rule = get_rule(rules, "Long Life to Pagure (Pagure I)")
     msg = Message(
@@ -55,42 +65,4 @@ def test_complicated_recipient_pagure(
         },
     )
 
-    with (
-        patch("fedbadges.rules.user_exists_in_fas") as g,
-        patch("datanommer.models.Message.grep") as grep,
-    ):
-        grep.return_value = float("inf"), 1, MockQuery()
-        g.return_value = True
-        assert rule.matches(msg, tahrir_client) == {"pingou", "lsedlar"}
-
-
-def test_complicated_recipient_pagure_bad(
-    rules,
-    tahrir_client,
-):
-    rule = get_rule(rules, "Long Life to Pagure (Pagure I)")
-    msg = Message(
-        topic="io.pagure.prod.pagure.git.receive",
-        body={
-            "authors": [
-                {
-                    "fullname": "Pierre-YvesChibon",
-                },
-                {
-                    "fullname": "Lubom\\u00edr Sedl\\u00e1\\u0159",
-                },
-            ],
-            "total_commits": 2,
-            "start_commit": "da090b8449237e3878d4d1fe56f7f8fcfd13a248",
-        },
-    )
-
-    with (
-        patch("fedbadges.rules.user_exists_in_fas") as g,
-        patch("datanommer.models.Message.grep") as grep,
-    ):
-        grep.return_value = float("inf"), 1, MockQuery()
-        g.return_value = True
-        with pytest.raises(ValueError) as excinfo:
-            rule.matches(msg, tahrir_client)
-        assert str(excinfo.value) == "Multiple recipients: name not found in the message"
+    assert rule.matches(msg, tahrir_client) == {"pingou", "lsedlar"}

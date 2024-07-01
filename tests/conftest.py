@@ -9,6 +9,7 @@ from tahrir_api.utils import get_db_manager_from_uri
 
 from fedbadges.cached import configure as configure_cache
 from fedbadges.consumer import FedoraBadgesConsumer
+from fedbadges.fas import FASProxy
 from fedbadges.rulesrepo import RulesRepo
 
 
@@ -65,8 +66,12 @@ def badges_db(tmp_path, notification_callback_mock):
 @pytest.fixture()
 def fasjson_client():
     client = Mock(name="fasjson")
-    with patch("fedbadges.consumer.fasjson_client.Client", return_value=client):
+    with patch("fedbadges.fas.fasjson_client.Client", return_value=client):
         yield client
+
+@pytest.fixture()
+def fasproxy(fasjson_client):
+    yield FASProxy("http://fasjson.example.com")
 
 
 @pytest.fixture()

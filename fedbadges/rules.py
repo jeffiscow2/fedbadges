@@ -484,11 +484,13 @@ class DatanommerCounter(AbstractChild):
         self, message: Message, search_kwargs: dict[str, int | str | list[str]]
     ):
         if "start" not in search_kwargs:
-            search_kwargs["start"] = self._get_start(search_kwargs)
-            if search_kwargs["start"] is not None and "end" not in search_kwargs:
-                # user creation time is naive, let's keep the end dt naive as well
-                # also, the datanommer column is currently naive, so, let's be consistent
-                search_kwargs["end"] = datetime.datetime.now()
+            start = self._get_start(search_kwargs)
+            if start is not None:
+                search_kwargs["start"] = start
+                if "end" not in search_kwargs:
+                    # user creation time is naive, let's keep the end dt naive as well
+                    # also, the datanommer column is currently naive, so, let's be consistent
+                    search_kwargs["end"] = datetime.datetime.now()
 
         total, _pages, query = self._make_query(search_kwargs)
         if self._d["operation"] == "count":
