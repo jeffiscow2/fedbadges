@@ -667,68 +667,42 @@ class DatanommerCounter(AbstractChild):
     #     total, pages, query = self._make_query(search_kwargs)
     #     return total, query
 
+    def _get_start(self, search_kwargs):
+        # This is an optimization: don't search before the user was created
+        if self.fasjson is None:
+            return None
 
-    def _first_message_timestamp(self, search_kwargs):
-        cache_key = f"{json_hash(search_kwargs)}|first_timestamp"
-        get_first_kwargs = search_kwargs.copy()
-        # remove grep() args that are not allowed by get_first()
-        for kwarg in ("defer", "rows_per_page", "page"):
-            with suppress(KeyError):
-                del get_first_kwargs[kwarg]
+        user_related_args = ("users", "agents")
+        if not any(arg in search_kwargs for arg in user_related_args):
+            return None
 
         def _get_user_creation_time(username):
-            if self.fasjson is None:
-                return None
-            # user = cache.get_or_create(
-            #     f"fas_user|{username}",
-            #     self.fasjson.get_user,
-            #     # short expiration time in case the user changes something in their account
-            #     expiration_time=300,
-            #     # Don't cache on 404
-            #     should_cache_fn=lambda result: result is not None,
-            #     creator_args=((username, ), {}),
-            # )
+            log.debug("Getting creation time for: %r", username)
             user = self.fasjson.get_user(username)
             if user is None:
                 return None
             return datetime.datetime.fromisoformat(user["creation"])
 
-        def _get_first_timestamp(**kwargs):
-            user_related_args = ("users", "agents")
-            if "start" not in kwargs and any(arg in kwargs for arg in user_related_args):
-                # Optimization: don't search before the user was created
-                kwargs["start"] = None
-                for username in chain(*[kwargs.get(arg, []) for arg in user_related_args]):
-                    user_creation_time = _get_user_creation_time(username)
-                    if user_creation_time is not None:
-                        # start looking the day before, to avoid messing up with timezones
-                        start = user_creation_time - datetime.timedelta(days=1)
-                        if kwargs["start"] is None or start > kwargs["start"]:
-                            kwargs["start"] = start
-                if kwargs["start"] is not None and "end" not in kwargs:
-                    # user creation time is naive, let's keep the end dt naive as well
-                    # also, the datanommer column is currently naive, so, let's be consistent
-                    kwargs["end"] = datetime.datetime.now()
-
-            log.debug("Getting first DN message for: %r", kwargs)
-            first_message = datanommer.models.Message.get_first(**kwargs)
-            return first_message.timestamp if first_message is not None else None
-
-        return cache.get_or_create(
-            cache_key,
-            creator=_get_first_timestamp,
-            creator_args=((), get_first_kwargs),
-            # Don't cache if there wasn't any previous message
-            should_cache_fn=lambda r: r is not None,
-            expiration_time=VERY_LONG_EXPIRATION_TIME,
-        )
+        start = None
+        for username in chain(*[search_kwargs.get(arg, []) for arg in user_related_args]):
+            user_creation_time = _get_user_creation_time(username)
+            if user_creation_time is None:
+                continue
+            # start looking the day before, to avoid messing up with timezones
+            user_start = user_creation_time - datetime.timedelta(days=1)
+            # use the earliest creation time of all selected users because they are ORed
+            if start is None or user_start < start:
+                start = user_start
+        return start
 
     def _query_with_operation(self, message: Message, search_kwargs: dict[str, int|str|list[str]]):
-        first_timestamp = self._first_message_timestamp(search_kwargs)
-        if first_timestamp is None:
-            return 0  # no first message == no message
-        search_kwargs["start"] = first_timestamp
-        search_kwargs["end"] = datetime.datetime.now()  # if there's a start, there must be an end
+        if "start" not in search_kwargs:
+            search_kwargs["start"] = self._get_start(search_kwargs)
+            if search_kwargs["start"] is not None and "end" not in search_kwargs:
+                # user creation time is naive, let's keep the end dt naive as well
+                # also, the datanommer column is currently naive, so, let's be consistent
+                search_kwargs["end"] = datetime.datetime.now()
+
         total, _pages, query = self._make_query(search_kwargs)
         if self._d["operation"] == "count":
             return total
