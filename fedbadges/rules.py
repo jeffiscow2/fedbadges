@@ -127,6 +127,7 @@ class BadgeRule:
     banned_usernames = frozenset(
         [
             "bodhi",
+            "bodhidev-bot",
             "oscar",
             "apache",
             "koji",
@@ -138,6 +139,7 @@ class BadgeRule:
             "distrobuildsync-eln/jenkins-continuous-infra.apps.ci.centos.org",
             "osbuild-automation-bot",
             "zodbot",
+            "root",
         ]
     )
 
