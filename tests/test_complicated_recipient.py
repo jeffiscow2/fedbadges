@@ -16,6 +16,7 @@ class MockQuery:
 def user_exists(fasjson_client):
     fasjson_client.get_user.return_value = SimpleNamespace(result={"username": "dummy-user"})
 
+
 @pytest.fixture
 def above_threshold():
     with patch("fedbadges.rules.get_cached_messages_count") as get_cached_messages_count:

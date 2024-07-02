@@ -69,6 +69,7 @@ def fasjson_client():
     with patch("fedbadges.fas.fasjson_client.Client", return_value=client):
         yield client
 
+
 @pytest.fixture()
 def fasproxy(fasjson_client):
     yield FASProxy("http://fasjson.example.com")

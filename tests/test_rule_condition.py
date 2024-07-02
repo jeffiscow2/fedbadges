@@ -1,4 +1,3 @@
-
 import pytest
 
 import fedbadges.rules
@@ -42,7 +41,7 @@ def test_basic_condition(cache_configured, returned_count, expectation):
 def test_lambda(cache_configured, returned_count, expectation):
     condition = fedbadges.rules.Condition(
         {
-                    "lambda": "value >= 500",
-            }
+            "lambda": "value >= 500",
+        }
     )
     assert condition(returned_count) is expectation
