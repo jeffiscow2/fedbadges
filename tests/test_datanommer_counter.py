@@ -64,7 +64,7 @@ def test_basic_datanommer(cache_configured):
         result = counter.count(message, "dummy-user")
         assert result == 42
         grep.assert_called_once_with(
-            topics=["org.fedoraproject.dev.something.sometopic"], defer=True
+            topics=["org.fedoraproject.dev.something.sometopic"], defer=True, rows_per_page=0
         )
 
 
@@ -118,4 +118,4 @@ def test_datanommer_with_lambda_filter(cache_configured):
         grep.return_value = returned_count, 1, MockQuery(returned_count)
         result = counter.count(message, "dummy-user")
         assert result == returned_count
-        grep.assert_called_once_with(users=["lmacken"], defer=True)
+        grep.assert_called_once_with(users=["lmacken"], defer=True, rows_per_page=0)

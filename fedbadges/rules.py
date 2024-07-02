@@ -449,6 +449,7 @@ class DatanommerCounter(AbstractChild):
         log.debug("Making datanommer query: %r", search_kwargs)
         _search_kwargs = search_kwargs.copy()
         _search_kwargs["defer"] = True
+        _search_kwargs.setdefault("rows_per_page", 0)
         total, pages, query = datanommer.models.Message.grep(**_search_kwargs)
         return total, pages, query
 
