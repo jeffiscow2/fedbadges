@@ -1,5 +1,48 @@
 # Changelog
 
+## Version 2.2.0
+
+- Remove args from `grep()` that are not in `get_first()` ([5dcd107](https://github.com/fedora-infra/tahrir-api/commit/5dcd107>))
+- Rollback on exception ([d3cefe5](https://github.com/fedora-infra/tahrir-api/commit/d3cefe5>))
+- Rollback in case of errors ([d23cf4e](https://github.com/fedora-infra/tahrir-api/commit/d23cf4e>))
+- Also rollback the connection to avoid https://sqlalche.me/e/20/8s2b ([6138ee0](https://github.com/fedora-infra/tahrir-api/commit/6138ee0>))
+- Rollback the datanommer session (
+    [ef7358b](https://github.com/fedora-infra/tahrir-api/commit/ef7358b>),
+    [532ee5c](https://github.com/fedora-infra/tahrir-api/commit/532ee5c>)
+  )
+- Zodbot is not a real Fedora user (bow nonetheless) ([1d325da](https://github.com/fedora-infra/tahrir-api/commit/1d325da>))
+- When querying for the first message, don't look earlier than the user's creation ([3e5605b](https://github.com/fedora-infra/tahrir-api/commit/3e5605b>))
+- Handle sending Fedora Message from outside the consumer (like in scripts) ([f4cc60b](https://github.com/fedora-infra/tahrir-api/commit/f4cc60b>))
+- Update the Mirrormanager URL ([0c9f553](https://github.com/fedora-infra/tahrir-api/commit/0c9f553>))
+- Fix the DN end datetime to be naive ([db83d57](https://github.com/fedora-infra/tahrir-api/commit/db83d57>))
+- Rate-limit the libravatar checker ([5d8cccf](https://github.com/fedora-infra/tahrir-api/commit/5d8cccf>))
+- Fix the tests after 3e5605bf ([92fadc9](https://github.com/fedora-infra/tahrir-api/commit/92fadc9>))
+- Update the libravatar checker to look for the email we use, not openid ([9418f13](https://github.com/fedora-infra/tahrir-api/commit/9418f13>))
+- Adjust tests to changes in tahrir-api ([0f727a3](https://github.com/fedora-infra/tahrir-api/commit/0f727a3>))
+- Better error handling in libravatar awarder ([ef7b074](https://github.com/fedora-infra/tahrir-api/commit/ef7b074>))
+- Better protection against message schemas with flaky usernames properties ([e0cbba1](https://github.com/fedora-infra/tahrir-api/commit/e0cbba1>))
+- Update tahrir-api and tahrir-messages ([c4cc4e5](https://github.com/fedora-infra/tahrir-api/commit/c4cc4e5>))
+- Fix build in Openshift ([3d58828](https://github.com/fedora-infra/tahrir-api/commit/3d58828>))
+- Check that mirror admins are in FAS before awarding them a badge ([56ed3f8](https://github.com/fedora-infra/tahrir-api/commit/56ed3f8>))
+- Fix the Vagrant development environment ([614bb3d](https://github.com/fedora-infra/tahrir-api/commit/614bb3d>))
+- Major rework of how the rules are constructed ([b4a9675](https://github.com/fedora-infra/tahrir-api/commit/b4a9675>))
+- Stop caching raw messages from datanommer ([e1f7a80](https://github.com/fedora-infra/tahrir-api/commit/e1f7a80>))
+- Store the message counts in the cache almost forever ([d9e6067](https://github.com/fedora-infra/tahrir-api/commit/d9e6067>))
+- Only cache datanommer query results for the duration of message processing ([0c19156](https://github.com/fedora-infra/tahrir-api/commit/0c19156>))
+- Put FASJSON function in its own module. ([8c864ef](https://github.com/fedora-infra/tahrir-api/commit/8c864ef>))
+- Add more blocklisted users ([fd23f61](https://github.com/fedora-infra/tahrir-api/commit/fd23f61>))
+- Silence the false-positive detection ([e96423a](https://github.com/fedora-infra/tahrir-api/commit/e96423a>))
+- Set `rows_per_page` to zero by default ([1278e62](https://github.com/fedora-infra/tahrir-api/commit/1278e62>))
+- Update documentation for the new rules format ([eac59e5](https://github.com/fedora-infra/tahrir-api/commit/eac59e5>))
+- Update dependencies in lockfile (
+    [9e4082b](https://github.com/fedora-infra/tahrir-api/commit/9e4082b>),
+    [e3907f4](https://github.com/fedora-infra/tahrir-api/commit/e3907f4>),
+    [f9302ba](https://github.com/fedora-infra/tahrir-api/commit/f9302ba>),
+    [eb1ab62](https://github.com/fedora-infra/tahrir-api/commit/eb1ab62>),
+    [6952631](https://github.com/fedora-infra/tahrir-api/commit/6952631>),
+    [24ff73a](https://github.com/fedora-infra/tahrir-api/commit/24ff73a>)
+  )
+
 ## Version 2.1.1
 
 - Add `rows_per_page` to the allowed datanommer grep args ([ccfc0f6](https://github.com/fedora-infra/tahrir-api/commit/ccfc0f6>))
