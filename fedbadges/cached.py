@@ -1,6 +1,7 @@
 import logging
 
 import pymemcache
+import redis
 from dogpile.cache import make_region
 from dogpile.cache.proxy import ProxyBackend
 
@@ -37,12 +38,19 @@ def get_cached_messages_count(badge_id: str, candidate: str, get_previous_fn):
     # query, then this data will not be rebuildable anymore and we should store it in a database
     # table linking badges and users.
     key = f"messages_count|{badge_id}|{candidate}"
-    current_value = cache.get_or_create(
-        key,
-        creator=lambda c: get_previous_fn(c) - 1,
-        creator_args=((candidate,), {}),
-        expiration_time=VERY_LONG_EXPIRATION_TIME,
-    )
+    try:
+        current_value = cache.get_or_create(
+            key,
+            creator=lambda c: get_previous_fn(c) - 1,
+            creator_args=((candidate,), {}),
+            expiration_time=VERY_LONG_EXPIRATION_TIME,
+        )
+    except redis.exceptions.LockNotOwnedError:
+        # This happens when the get_previous_fn() call lasted longer that the maximum redis lock
+        # time. In this case, the value has been computed and stored in Redis, but dogpile just
+        # failed to release the lock. Just try again, the value should be there already.
+        return get_cached_messages_count(badge_id, candidate, get_previous_fn)
+
     # Add one (the current message), store it, return it
     new_value = current_value + 1
     cache.set(key, new_value)
