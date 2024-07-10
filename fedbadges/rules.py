@@ -101,6 +101,7 @@ class BadgeRule:
             "taskotron",
             "pagure",
             "packit",
+            "packit-stg",
             "koschei",
             "distrobuildsync-eln/jenkins-continuous-infra.apps.ci.centos.org",
             "osbuild-automation-bot",
