@@ -131,8 +131,6 @@ class FedoraBadgesConsumer:
 
         self._wait_for_datanommer(message)
 
-        log.debug("Updating cached values for %s on %s", message.id, message.topic)
-
         datagrepper_url = self.config["datagrepper_url"]
         link = f"{datagrepper_url}/v2/id?id={message.id}&is_raw=true&size=extra-large"
 

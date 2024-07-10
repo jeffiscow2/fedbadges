@@ -49,6 +49,12 @@ def get_cached_messages_count(badge_id: str, candidate: str, get_previous_fn):
         # This happens when the get_previous_fn() call lasted longer that the maximum redis lock
         # time. In this case, the value has been computed and stored in Redis, but dogpile just
         # failed to release the lock. Just try again, the value should be there already.
+        log.debug(
+            "Oops, getting the cached messages count of rule %s for user %s took too long for the "
+            "cache lock. Retrying. It should be fast now.",
+            badge_id,
+            candidate,
+        )
         return get_cached_messages_count(badge_id, candidate, get_previous_fn)
 
     # Add one (the current message), store it, return it
