@@ -15,7 +15,7 @@ import datanommer.models
 import tahrir_api.dbapi
 from fedora_messaging.api import Message
 from fedora_messaging.config import conf as fm_config
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from .aio import Periodic
 from .cached import configure as configure_cache
@@ -105,8 +105,14 @@ class FedoraBadgesConsumer:
         client = self._get_tahrir_client(self.tahrir.session)
         client.add_person(email)
         self.tahrir.session.commit()
-        client.add_assertion(badge_rule.badge_id, email, None, link)
-        self.tahrir.session.commit()
+        try:
+            client.add_assertion(badge_rule.badge_id, email, None, link)
+        except IntegrityError:
+            # The badge has already been awarded by another consumer
+            log.debug("Badge %s is already awarded to %s", badge_rule.badge_id, email)
+            self.tahrir.session.rollback()
+        else:
+            self.tahrir.session.commit()
 
     def __call__(self, message: Message):
         try:
