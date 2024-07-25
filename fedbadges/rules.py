@@ -246,6 +246,23 @@ class BadgeRule:
 
         return candidates
 
+    def _get_current_value(self, candidate: str, previous_count_fn, tahrir: TahrirDatabase):
+        candidate_email = f"{candidate}@{self.config['email_domain']}"
+        # First: the database
+        messages_count = tahrir.get_current_value(self.badge_id, candidate_email)
+        # If not found, use the cache
+        if messages_count is None:
+            # When we drop this cache sometime in the future, remember to keep the
+            # distributed lock (dogpile.lock) when running previous_count_fn()
+            messages_count = get_cached_messages_count(self.badge_id, candidate, previous_count_fn)
+        else:
+            # Found in DB! Add one (the current message)
+            messages_count += 1
+        # Store the value in the DB for next time
+        tahrir.set_current_value(self.badge_id, candidate_email, messages_count)
+        tahrir.session.commit()
+        return messages_count
+
     def matches(self, msg: Message, tahrir: TahrirDatabase):
         # First, do a lightweight check to see if the msg matches a pattern.
         if not self.trigger.matches(msg):
@@ -273,9 +290,7 @@ class BadgeRule:
         try:
             awardees = set()
             for candidate in candidates:
-                messages_count = get_cached_messages_count(
-                    self.badge_id, candidate, previous_count_fn
-                )
+                messages_count = self._get_current_value(candidate, previous_count_fn, tahrir)
                 log.debug(
                     "Rule %s: message count for %s is %s", self.badge_id, candidate, messages_count
                 )

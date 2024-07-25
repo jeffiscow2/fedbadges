@@ -44,7 +44,7 @@ def test_full_specification():
         )
 
 
-def test_full_simple_success(fasproxy, tahrir_client, user_exists):
+def test_full_simple_success(fasproxy, tahrir_client, fm_config, user_exists):
     """A simple integration test for messages with zero users"""
     rule = fedbadges.rules.BadgeRule(
         dict(
@@ -62,7 +62,7 @@ def test_full_simple_success(fasproxy, tahrir_client, user_exists):
             ),
         ),
         1,
-        None,
+        fm_config,
         fasproxy,
     )
     rule.setup(tahrir_client)
@@ -74,7 +74,7 @@ def test_full_simple_success(fasproxy, tahrir_client, user_exists):
         assert rule.matches(msg, tahrir_client) == {"lmacken"}
 
 
-def test_full_simple_match_almost_succeed(fasproxy, tahrir_client):
+def test_full_simple_match_almost_succeed(fasproxy, tahrir_client, fm_config):
     """A simple integration test for messages with zero users"""
     rule = fedbadges.rules.BadgeRule(
         dict(
@@ -92,7 +92,7 @@ def test_full_simple_match_almost_succeed(fasproxy, tahrir_client):
             ),
         ),
         1,
-        None,
+        fm_config,
         fasproxy,
     )
     rule.setup(tahrir_client)
@@ -107,7 +107,7 @@ def test_full_simple_match_almost_succeed(fasproxy, tahrir_client):
         assert rule.matches(msg, tahrir_client) == set()
 
 
-def test_yaml_specified_awardee_success(fasproxy, tahrir_client, user_exists):
+def test_yaml_specified_awardee_success(fasproxy, tahrir_client, fm_config, user_exists):
     """Test that we can override msg.usernames."""
     # For instance, fas.group.member.remove contains two users,
     # the one being removed from a group, and the one doing the removing.
@@ -134,7 +134,7 @@ def test_yaml_specified_awardee_success(fasproxy, tahrir_client, user_exists):
             recipient="[message.body['agent']['username'], message.body['user']['username']]",
         ),
         1,
-        None,
+        fm_config,
         fasproxy,
     )
     rule.setup(tahrir_client)
@@ -153,7 +153,7 @@ def test_yaml_specified_awardee_success(fasproxy, tahrir_client, user_exists):
         assert rule.matches(msg, tahrir_client) == {"toshio", "ralph"}
 
 
-def test_yaml_specified_awardee_failure(fasproxy, tahrir_client, user_exists):
+def test_yaml_specified_awardee_failure(fasproxy, tahrir_client, fm_config, user_exists):
     """Test that when we don't override msg.usernames, we get 2 awardees."""
     rule = fedbadges.rules.BadgeRule(
         dict(
@@ -171,7 +171,7 @@ def test_yaml_specified_awardee_failure(fasproxy, tahrir_client, user_exists):
             ),
         ),
         1,
-        None,
+        fm_config,
         fasproxy,
     )
     rule.setup(tahrir_client)
@@ -192,7 +192,7 @@ def test_yaml_specified_awardee_failure(fasproxy, tahrir_client, user_exists):
         assert rule.matches(msg, tahrir_client) == {"toshio"}
 
 
-def test_against_duplicates(fasproxy, tahrir_client, user_exists):
+def test_against_duplicates(fasproxy, tahrir_client, fm_config, user_exists):
     """Test that matching fails if user already has the badge."""
 
     rule = fedbadges.rules.BadgeRule(
@@ -212,7 +212,7 @@ def test_against_duplicates(fasproxy, tahrir_client, user_exists):
             recipient="message.usernames",
         ),
         1,
-        None,
+        fm_config,
         fasproxy,
     )
     rule.setup(tahrir_client)
@@ -239,7 +239,7 @@ def test_against_duplicates(fasproxy, tahrir_client, user_exists):
         assert rule.matches(msg, tahrir_client) == set(["ralph"])
 
 
-def test_github_awardee(fasproxy, tahrir_client, fasjson_client, user_exists):
+def test_github_awardee(fasproxy, tahrir_client, fasjson_client, fm_config, user_exists):
     """Conversion from GitHub URI to FAS users"""
     rule = fedbadges.rules.BadgeRule(
         dict(
@@ -259,7 +259,7 @@ def test_github_awardee(fasproxy, tahrir_client, fasjson_client, user_exists):
             recipient_github2fas="Yes",
         ),
         1,
-        None,
+        fm_config,
         fasproxy,
     )
     rule.setup(tahrir_client)
@@ -281,7 +281,7 @@ def test_github_awardee(fasproxy, tahrir_client, fasjson_client, user_exists):
         )
 
 
-def test_krb_awardee(fasproxy, tahrir_client, user_exists):
+def test_krb_awardee(fasproxy, tahrir_client, fm_config, user_exists):
     """Conversion from Kerberos user to FAS users"""
     rule = fedbadges.rules.BadgeRule(
         dict(
@@ -301,7 +301,7 @@ def test_krb_awardee(fasproxy, tahrir_client, user_exists):
             recipient_krb2fas="Yes",
         ),
         1,
-        None,
+        fm_config,
         fasproxy,
     )
     rule.setup(tahrir_client)

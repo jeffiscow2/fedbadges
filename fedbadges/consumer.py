@@ -77,9 +77,13 @@ class FedoraBadgesConsumer:
         configure_cache(**cache_args)
 
     def _initialize_tahrir_connection(self):
+        if "email_domain" not in self.config:
+            raise ValueError("Missing configuration key: 'email_domain'")
+
         database_uri = self.config.get("database_uri")
         if not database_uri:
             raise ValueError("Badges consumer requires a database uri")
+
         issuer = self.config["badge_issuer"]
         self.tahrir = tahrir_api.dbapi.TahrirDatabase(
             dburi=database_uri,
@@ -101,7 +105,7 @@ class FedoraBadgesConsumer:
         datanommer.models.init(self.config["datanommer_db_uri"])
 
     def award_badge(self, username, badge_rule, link=None):
-        email = f"{username}@fedoraproject.org"
+        email = f"{username}@{self.config['email_domain']}"
         client = self._get_tahrir_client(self.tahrir.session)
         client.add_person(email)
         self.tahrir.session.commit()

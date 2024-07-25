@@ -26,6 +26,7 @@ def fm_config(tmp_path):
     test_config = dict(
         badges_repo="tests/test_badges",
         database_uri=f"sqlite:///{tmp_path.as_posix()}/badges.db",
+        email_domain="example.com",
         datanommer_db_uri=f"sqlite:///{tmp_path.as_posix()}/datanommer.db",
         datagrepper_url="https://example.com/datagrepper",
         distgit_hostname="src.example.com",
@@ -41,7 +42,7 @@ def fm_config(tmp_path):
         ),
     )
     with patch.dict(conf["consumer_config"], test_config):
-        yield
+        yield test_config
 
 
 @pytest.fixture()

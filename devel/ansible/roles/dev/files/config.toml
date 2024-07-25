@@ -40,6 +40,9 @@ badges_repo = "tests/test_badges"
 # production, this will be a postgres URI.
 database_uri = "sqlite:////home/vagrant/tahrir.db"
 
+# Email domain
+email_domain = "tinystage.test"
+
 # Datanommer database URI
 datanommer_db_uri = "postgresql://datanommer:datanommer@localhost/messages"
 datagrepper_url = "https://apps.fedoraproject.org/datagrepper"
