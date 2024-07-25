@@ -71,6 +71,7 @@
     mode: 0640
   loop:
     - "tahrir.cfg"
+    - "alembic.ini"
 
 - name: Create or update the database
   command: "{{ venv }}/bin/tahrir-sync-db /home/vagrant/tahrir.cfg"
