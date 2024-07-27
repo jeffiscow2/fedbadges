@@ -129,25 +129,19 @@ class FedoraBadgesConsumer:
         datanommer.models.session.rollback()
 
     def _process_message(self, message: Message):
-        # First thing, we receive the message, but we put ourselves to sleep to
-        # wait for a moment.  The reason for this is that, when things are
-        # 'calm' on the bus, we receive messages "too fast".  A message that
-        # arrives to the badge awarder triggers (usually) a check against
-        # datanommer to count messages.  But if we try to count them before
-        # this message arrives at datanommer, we'll get skewed results!  Race
-        # condition.
-        # If the message is recent, we ask datanommer if it already has it.
-        # If it's older, we assume datanommer already has it and spare it a query.
-
         self._wait_for_datanommer(message)
+        tahrir = self._get_tahrir_client()
 
-        datagrepper_url = self.config["datagrepper_url"]
-        link = f"{datagrepper_url}/v2/id?id={message.id}&is_raw=true&size=extra-large"
+        # Update the leaderboard if necessary
+        if message.topic.endswith("badges.badge.award"):
+            person = tahrir.get_person(nickname=message.body["user"]["username"])
+            log.debug("Computing the leaderboard for %s", person.nickname)
+            tahrir.adjust_ranks(person)
 
         # Award every badge as appropriate.
         log.debug("Processing rules for %s on %s", message.id, message.topic)
-
-        tahrir = self._get_tahrir_client()
+        datagrepper_url = self.config["datagrepper_url"]
+        link = f"{datagrepper_url}/v2/id?id={message.id}&is_raw=true&size=extra-large"
         for badge_rule in self.badge_rules:
             try:
                 for recipient in badge_rule.matches(message, tahrir):
@@ -171,6 +165,8 @@ class FedoraBadgesConsumer:
         self.badge_rules = self._rules_repo.load_all(tahrir)
 
     def _wait_for_datanommer(self, message: Message):
+        # If the message is recent, we ask datanommer if it already has it.
+        # If it's older, we assume datanommer already has it and spare it a query.
         now = datetime.datetime.now(tz=datetime.timezone.utc)
         a_minute_ago = now - datetime.timedelta(minutes=1)
         try:

@@ -2944,13 +2944,13 @@ typing-extensions = "*"
 
 [[package]]
 name = "tahrir-api"
-version = "1.3.0"
+version = "1.4.0"
 description = "An API for interacting with the Tahrir database"
 optional = false
 python-versions = "<4.0.0,>=3.9.0"
 files = [
-    {file = "tahrir_api-1.3.0-py3-none-any.whl", hash = "sha256:6f2d9cd80873e20accbe0f36db1924d88ee7e3a8fb57f8ed10b251a3b7e9a260"},
-    {file = "tahrir_api-1.3.0.tar.gz", hash = "sha256:884abb862884244a42e2c12ec80d6dcfb1a90ee3e2688d0f64114d78c1727c74"},
+    {file = "tahrir_api-1.4.0-py3-none-any.whl", hash = "sha256:7332a39eb77594a998b39ceb3a0804d9e2df559be83e3ff82c989ace339a6ba7"},
+    {file = "tahrir_api-1.4.0.tar.gz", hash = "sha256:2e309b03d4f8163575240df1033de244f03407ae6280d052ae034ce786933630"},
 ]
 
 [package.dependencies]
@@ -3292,4 +3292,4 @@ schemas = ["anitya-schema", "bodhi-messages", "bugzilla2fedmsg-schema", "ci-mess
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "51b77383e526bf6db7c436c4083f6126d089e68d420287295f99ce64ca95177f"
+content-hash = "0fe60a0396ddac298e8d4a0999a196fb2b4417f93a5a394a7e0e2cd356dadf24"
