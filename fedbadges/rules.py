@@ -15,6 +15,7 @@ from itertools import chain
 
 import datanommer.models
 from fedora_messaging.api import Message
+from sqlalchemy.exc import IntegrityError
 from tahrir_api.dbapi import TahrirDatabase
 
 from fedbadges.cached import cache, get_cached_messages_count
@@ -259,8 +260,15 @@ class BadgeRule:
             # Found in DB! Add one (the current message)
             messages_count += 1
         # Store the value in the DB for next time
-        tahrir.set_current_value(self.badge_id, candidate_email, messages_count)
-        tahrir.session.commit()
+        try:
+            tahrir.set_current_value(self.badge_id, candidate_email, messages_count)
+            tahrir.session.commit()
+        except IntegrityError:
+            log.debug("Oops, conflict when setting the current value, let's try again")
+            # Another process already added the value! (querying datanommer can be long)
+            tahrir.session.rollback()
+            # Try again, this time the value should be in the DB already.
+            return self._get_current_value(candidate, previous_count_fn, tahrir)
         return messages_count
 
     def matches(self, msg: Message, tahrir: TahrirDatabase):
