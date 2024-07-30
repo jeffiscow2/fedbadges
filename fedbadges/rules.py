@@ -15,6 +15,7 @@ import time
 from itertools import chain
 
 import datanommer.models
+import redis
 from dogpile.lock import Lock, NeedRegenerationException
 from fedora_messaging.api import Message
 from tahrir_api.dbapi import TahrirDatabase
@@ -268,18 +269,30 @@ class BadgeRule:
 
         # Use a distributed lock to avoid two consumers processing the same rule for the same
         # candidate at the same time and overwriting each other's values.
-        with Lock(
-            cache.backend.get_mutex(lock_key),
-            gen_value,
-            get_value,
-            expiretime=None,
-        ) as value:
-            # Add one (the current message)
-            new_value = value + 1
-            # Store the value in the DB for next time
-            tahrir.set_current_value(self.badge_id, user_email, new_value)
-            tahrir.session.commit()
-            return new_value
+        try:
+            with Lock(
+                cache.backend.get_mutex(lock_key),
+                gen_value,
+                get_value,
+                expiretime=None,
+            ) as value:
+                # Add one (the current message)
+                new_value = value + 1
+                # Store the value in the DB for next time
+                tahrir.set_current_value(self.badge_id, user_email, new_value)
+                tahrir.session.commit()
+                return new_value
+        except redis.exceptions.LockNotOwnedError:
+            # This happens when the get_previous_fn() call lasted longer that the maximum redis lock
+            # time. In this case, the value has been computed and stored in the DB, but dogpile just
+            # failed to release the lock. Just try again, the value should be there already.
+            log.debug(
+                "Oops, getting the cached messages count of rule %s for user %s took too long for "
+                "the cache lock. Retrying. It should be fast now.",
+                self.badge_id,
+                candidate,
+            )
+            return self._get_current_value(candidate, previous_count_fn, tahrir)
 
     def matches(self, msg: Message, tahrir: TahrirDatabase):
         # First, do a lightweight check to see if the msg matches a pattern.
