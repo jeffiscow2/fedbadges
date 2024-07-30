@@ -69,8 +69,8 @@ def test_full_simple_success(fasproxy, tahrir_client, fm_config, user_exists):
 
     msg = example_real_bodhi_message
 
-    with patch("fedbadges.rules.get_cached_messages_count") as get_cached_messages_count:
-        get_cached_messages_count.return_value = 1
+    with patch("fedbadges.rules.BadgeRule._get_current_value") as get_current_value:
+        get_current_value.return_value = 1
         assert rule.matches(msg, tahrir_client) == {"lmacken"}
 
 
@@ -102,8 +102,8 @@ def test_full_simple_match_almost_succeed(fasproxy, tahrir_client, fm_config):
     # we should *fail* the ``matches`` call.
     msg = Message(topic="org.fedoraproject.prod.bodhi.mashtask.complete", body={"success": False})
 
-    with patch("fedbadges.rules.get_cached_messages_count") as get_cached_messages_count:
-        get_cached_messages_count.return_value = 0
+    with patch("fedbadges.rules.BadgeRule._get_current_value") as get_current_value:
+        get_current_value.return_value = 0
         assert rule.matches(msg, tahrir_client) == set()
 
 
@@ -148,8 +148,8 @@ def test_yaml_specified_awardee_success(fasproxy, tahrir_client, fm_config, user
         },
     )
 
-    with patch("fedbadges.rules.get_cached_messages_count") as get_cached_messages_count:
-        get_cached_messages_count.return_value = 1
+    with patch("fedbadges.rules.BadgeRule._get_current_value") as get_current_value:
+        get_current_value.return_value = 1
         assert rule.matches(msg, tahrir_client) == {"toshio", "ralph"}
 
 
@@ -187,8 +187,8 @@ def test_yaml_specified_awardee_failure(fasproxy, tahrir_client, fm_config, user
         },
     )
 
-    with patch("fedbadges.rules.get_cached_messages_count") as get_cached_messages_count:
-        get_cached_messages_count.return_value = 1
+    with patch("fedbadges.rules.BadgeRule._get_current_value") as get_current_value:
+        get_current_value.return_value = 1
         assert rule.matches(msg, tahrir_client) == {"toshio"}
 
 
@@ -234,8 +234,8 @@ def test_against_duplicates(fasproxy, tahrir_client, fm_config, user_exists):
         },
     )
 
-    with patch("fedbadges.rules.get_cached_messages_count") as get_cached_messages_count:
-        get_cached_messages_count.return_value = 1
+    with patch("fedbadges.rules.BadgeRule._get_current_value") as get_current_value:
+        get_current_value.return_value = 1
         assert rule.matches(msg, tahrir_client) == set(["ralph"])
 
 
@@ -269,8 +269,8 @@ def test_github_awardee(fasproxy, tahrir_client, fasjson_client, fm_config, user
         body={"user": "https://api.github.com/users/dummygh"},
     )
 
-    with patch("fedbadges.rules.get_cached_messages_count") as get_cached_messages_count:
-        get_cached_messages_count.return_value = 1
+    with patch("fedbadges.rules.BadgeRule._get_current_value") as get_current_value:
+        get_current_value.return_value = 1
         fasjson_client.search.return_value = SimpleNamespace(result=[{"username": "dummy"}])
         assert rule.matches(msg, tahrir_client) == set(["dummy"])
         fasjson_client.search.assert_called_once_with(
@@ -336,6 +336,6 @@ def test_krb_awardee(fasproxy, tahrir_client, fm_config, user_exists):
         body={"owner": "packagerbot/os-master02.iad2.fedoraproject.org"},
     )
 
-    with patch("fedbadges.rules.get_cached_messages_count") as get_cached_messages_count:
-        get_cached_messages_count.return_value = 1
+    with patch("fedbadges.rules.BadgeRule._get_current_value") as get_current_value:
+        get_current_value.return_value = 1
         assert rule.matches(msg, tahrir_client) == set(["packagerbot"])

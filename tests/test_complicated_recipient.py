@@ -19,8 +19,8 @@ def user_exists(fasjson_client):
 
 @pytest.fixture
 def above_threshold():
-    with patch("fedbadges.rules.get_cached_messages_count") as get_cached_messages_count:
-        get_cached_messages_count.return_value = float("inf")
+    with patch("fedbadges.rules.BadgeRule._get_current_value") as get_current_value:
+        get_current_value.return_value = float("inf")
         yield
 
 

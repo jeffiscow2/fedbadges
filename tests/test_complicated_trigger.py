@@ -69,6 +69,6 @@ def test_complicated_trigger_against_full_match(rule, message, tahrir_client, fa
             return float("inf")  # Master tagger
 
     fasjson_client.get_user.return_value = SimpleNamespace(result={"username": "dummy-user"})
-    with patch("fedbadges.rules.get_cached_messages_count") as get_cached_messages_count:
-        get_cached_messages_count.return_value = float("inf")
+    with patch("fedbadges.rules.BadgeRule._get_current_value") as get_current_value:
+        get_current_value.return_value = float("inf")
         assert rule.matches(message, tahrir_client) == {"ralph"}

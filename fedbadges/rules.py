@@ -11,14 +11,15 @@ import datetime
 import functools
 import inspect
 import logging
+import time
 from itertools import chain
 
 import datanommer.models
+from dogpile.lock import Lock, NeedRegenerationException
 from fedora_messaging.api import Message
-from sqlalchemy.exc import IntegrityError
 from tahrir_api.dbapi import TahrirDatabase
 
-from fedbadges.cached import cache, get_cached_messages_count
+from fedbadges.cached import cache
 from fedbadges.fas import distgit2fas, krb2fas, openid2fas
 from fedbadges.utils import (
     # These are all in-process utilities
@@ -248,28 +249,37 @@ class BadgeRule:
         return candidates
 
     def _get_current_value(self, candidate: str, previous_count_fn, tahrir: TahrirDatabase):
-        candidate_email = f"{candidate}@{self.config['email_domain']}"
-        # First: the database
-        messages_count = tahrir.get_current_value(self.badge_id, candidate_email)
-        # If not found, use the cache
-        if messages_count is None:
-            # When we drop this cache sometime in the future, remember to keep the
-            # distributed lock (dogpile.lock) when running previous_count_fn()
-            messages_count = get_cached_messages_count(self.badge_id, candidate, previous_count_fn)
-        else:
-            # Found in DB! Add one (the current message)
-            messages_count += 1
-        # Store the value in the DB for next time
-        try:
-            tahrir.set_current_value(self.badge_id, candidate_email, messages_count)
+        lock_key = f"messages_count|{self.badge_id}|{candidate}"
+        user_email = f"{candidate}@{self.config['email_domain']}"
+
+        def get_value():
+            value = tahrir.get_current_value(self.badge_id, user_email)
+            if value is None:
+                raise NeedRegenerationException()
+            # The dogpile.lock API ask us to return a (value, creation time) tuple
+            return value, time.time()
+
+        def gen_value():
+            # Ask Datanommer. We'll add the current message later, but it's already in DN,
+            # so substract it now.
+            value = previous_count_fn(candidate) - 1
+            # The dogpile.lock API ask us to return a (value, creation time) tuple
+            return value, time.time()
+
+        # Use a distributed lock to avoid two consumers processing the same rule for the same
+        # candidate at the same time and overwriting each other's values.
+        with Lock(
+            cache.backend.get_mutex(lock_key),
+            gen_value,
+            get_value,
+            expiretime=None,
+        ) as value:
+            # Add one (the current message)
+            new_value = value + 1
+            # Store the value in the DB for next time
+            tahrir.set_current_value(self.badge_id, user_email, new_value)
             tahrir.session.commit()
-        except IntegrityError:
-            log.debug("Oops, conflict when setting the current value, let's try again")
-            # Another process already added the value! (querying datanommer can be long)
-            tahrir.session.rollback()
-            # Try again, this time the value should be in the DB already.
-            return self._get_current_value(candidate, previous_count_fn, tahrir)
-        return messages_count
+            return new_value
 
     def matches(self, msg: Message, tahrir: TahrirDatabase):
         # First, do a lightweight check to see if the msg matches a pattern.
