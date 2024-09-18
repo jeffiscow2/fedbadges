@@ -122,6 +122,7 @@ class BadgeRule:
             "sambabot",
             "sourcegraph-bot",
             "theforeman-bot",
+            "rhcontainerbot",
         ]
     )
 
