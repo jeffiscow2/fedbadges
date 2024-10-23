@@ -212,3 +212,35 @@ showcontent = true
 directory = "fixed"
 name = "Fixed"
 showcontent = true
+
+#not sure if this is the correct spot for this but its time for bed.
+skip_users = [
+  "bodhi",
+  "oscar",
+  "apache",
+  "koji",
+  "bodhi",
+  "taskotron",
+  "pagure",
+  "packit",
+  "packit-stg",
+  "koschei",
+  "distrobuildsync-eln/jenkins-continuous-infra.apps.ci.centos.org",
+  "root",
+  "zodbot",
+  "bodhidev-bot",
+  "eclipse-bluechi-bot",
+  "githubbotargparsemanpage",
+  "imagebuilder-bot",
+  "knet-ci-bot",
+  "l10nbot",
+  "noobdevbot",
+  "notifs-bot",
+  "notifs-stg-bot",
+  "osbuild-automation-bot",
+  "releng-bot",
+  "sambabot",
+  "sourcegraph-bot",
+  "theforeman-bot",
+  "rhcontainerbot",
+]
