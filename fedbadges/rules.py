@@ -93,6 +93,7 @@ class BadgeRule:
         ]
     )
 
+    skip_users = "skip_users.toml"
 
     def __init__(self, badge_dict, issuer_id, config, fasjson):
         try:
@@ -191,7 +192,7 @@ class BadgeRule:
         candidates = frozenset([e for e in candidates if e is not None])
 
         # Exclude banned usernames
-        candidates = candidates.difference(self.banned_usernames)
+        candidates = candidates.difference(self.skip_users)
 
         # Strip anyone who is an IP address
         candidates = frozenset(
