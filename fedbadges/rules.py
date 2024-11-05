@@ -191,7 +191,7 @@ class BadgeRule:
         # Remove None
         candidates = frozenset([e for e in candidates if e is not None])
 
-        # Exclude banned usernames
+        # Exclude skipped usernames
         candidates = candidates.difference(self.skip_users)
 
         # Strip anyone who is an IP address
