@@ -67,6 +67,24 @@ issuer_origin = "http://badges.tinystage.test"
 issuer_url = "http://fedoraproject.org"
 issuer_email = "badges@fedoraproject.org"
 
+# Users skipped when awarding badges
+skip_users = [ 
+         "bodhi", 
+         "bodhidev-bot", 
+         "oscar", 
+         "apache", 
+         "koji", 
+         "bodhi", 
+         "taskotron", 
+         "pagure", 
+         "packit", 
+         "packit-stg", 
+         "koschei", 
+         "distrobuildsync-eln/jenkins-continuous-infra.apps.ci.centos.org", 
+         "osbuild-automation-bot", 
+         "zodbot", 
+         "root", 
+     ] 
 
 [qos]
 prefetch_size = 0

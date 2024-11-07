@@ -93,7 +93,7 @@ class BadgeRule:
         ]
     )
 
-    skip_users = "skip_users.toml"
+    skip_users = "config.toml"
 
     def __init__(self, badge_dict, issuer_id, config, fasjson):
         try:
