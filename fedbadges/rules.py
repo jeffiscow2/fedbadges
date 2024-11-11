@@ -93,8 +93,6 @@ class BadgeRule:
         ]
     )
 
-    skip_users = "config.toml"
-
     def __init__(self, badge_dict, issuer_id, config, fasjson):
         try:
             validate_fields(self.required, self.possible, badge_dict)
@@ -188,11 +186,15 @@ class BadgeRule:
         if self.recipient_krb2fas:
             candidates = frozenset([krb2fas(uri) for uri in candidates])
 
+        # Skipped usernames
+        for candidates in self.config.get("skip_users"):
+            if candidates == self.config.get("skip_users"):
+                candidates = frozenset(candidates - self.config.get("skip_users"))
+            else:
+                continue
+
         # Remove None
         candidates = frozenset([e for e in candidates if e is not None])
-
-        # Exclude skipped usernames
-        candidates = candidates.difference(self.skip_users)
 
         # Strip anyone who is an IP address
         candidates = frozenset(
